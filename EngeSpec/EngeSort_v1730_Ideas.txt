@@ -1,0 +1,22 @@
+//////////////////////////////////////////////////////////////////////
+Configuring the sort routine for the Enge focal-plane detector package
+//////////////////////////////////////////////////////////////////////
+
+All coincidences and triggering on the scintillator (E) should both be done in the sort routine. If these weren't done by the digitizer firmware, we would be relying on hardware. It's easier to correct software issues.
+
+The coincidence handling in my original sort routine will not work with the focal-plane detector package. The way it worked previously was that only consecutive events were considered to be in coincidence with each other. This worked for only 2 channels in coincidence, but it will not work for multiple channels in coincidence with each other. For example, Front HE couldn't be in coincidence with both Front LE and the scintillator (E).
+
+The new way needs to involve a coincidence window of something like 5 microseconds. When the scintillator (E) is triggered, a coincidence window should open where any event from the other detectors can be collected. Richard is convinced that the scintillator triggers first in the package even though it is physically located in the back. The response of the other detectors is much slower (on the microsecond scale) than the speed of the particles, and the scintillator response is very fast (nanoseconds?). If this is true, then it would make things easier because the window opens and looks for events in the future, rather than looking for events in the past.
+
+How can I implement a coincidence window in the sort routine? Can I use the timetag clock, or do I have to use some new C++ timing feature? I think I can have an if statement once the scillator has been triggered that takes the timetag of the scintillator event and looks for other timetags that are the coincidence window further in time. (Yes, this works!)
+
+The silicon DE and E detectors share their own separate coincidence window. Do this the same way as the other detectors. But which detector comes first? If we don't know, then there is the possibility that we get out of sync with coincidences. e.g. the first event triggers the coincidence window to open, the second event comes through
+
+//////////////////////////////////////////////////////////////////////
+Update 2/21/24 (NCSU Postdoc):
+//////////////////////////////////////////////////////////////////////
+
+Need to rethink the coincidence logic. It is a good start, but does not account for all the possible scattering scenarios. E.g. What happens if:
+1.) A single particle triggers Si DE first, then appears in Si E, then scatters backwards to appear in Si DE again?
+        - As the code is now, the coincidence window automatically closes when a coincidence is found. That means the 3rd event here (Si DE backscatter) would trigger a new coincidence window to open because the 2nd event would have closed it. If a second particle now comes in and appears in E during the false coincidence window, we have a false coincidence.
+        - This could potentially be solved by not closing the coincidence window automatically, but if the scattering occurs over a period longer than the coincidence window, this could still be a problem. As long as we pick a sufficiently long coincidence window, this would be resolved by leaving the window open longer.
