@@ -15,54 +15,80 @@ std::string EngeSort::saygoodbye( ) {
   return messages.saygoodbye();
 }
 
+//---------------------------- Settings --------------------------------
+//----------------------------------------------------------------------
+// Number of channels in 1D and 2D histograms
 int Channels1D = 8192;
 int Channels2D = 512;
 
-//---------------------------- Settings --------------------------------
-// Coincidence Window for Focal Plane Detector Components (in ns)
-int coinWindow = 5000;
-// Automatically close the window when all appropriate coincidences have been recorded
-bool autoCoinWindowClose = true;
+// qlong threshold
+int Thresh = 20;
 
-// Coincidence Window for Silicon Detectors only (in ns)
-int coinWindow_Si = 5000;
-bool autoCoinWindowClose_Si = true;
+// Define the channels (0-15)
+int iFrontHE = 0;
+int iFrontLE = 1;
+int iBackHE = 2;
+int iBackLE = 3;
+int iE = 4;
+int iDE = 5;
+int iSiE = 6;
+int iSiDE = 7;
 
-// Scaling coin. time (for E vs t histograms) by this factor
-// Scale is timeScale * 2 ns per bin [timeScale min = 1 (best resolution), max = 16]
+// FP Trigger (By channel number -- for Pos1 use iFrontHE or iFrontLE. Similarly for Pos2)
+int FPTrigger = iE; // Scintillator (E)
+// Note: Si triggers on EITHER SiE or SiDE
+
+// Coincidence Windows for Focal Plane and Si Detector (in ns)
+int win_ns = 5000;
+int winSi_ns = 5000;
+
+// Automatically close the windows when all appropriate coincidences have been recorded
+// Although this reduces the deadtime significantly, false coincidences occur significantly more often
+//bool autoClose = false;
+//bool autoCloseSi = false;
+
+// Max value of the timetag, at which point it rolls back to 0
+// Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483648 or 0x7FFFFFFF
+// Each timetag unit is 2 ns (v1730), so roll back time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
+int timetagReset = INT_MAX;
+
+// Scaling coincidence time (for E vs time histograms) by this factor
+// timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
 int timeScale = 1;
-//---------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 //------------------ Global sort routine variables --------------------
-int coinWindowStart;
-int coinWindowStart_Si;
-bool enableCoinWindow = false;
-bool enableCoinWindow_Si = false;
-
-// Flags to prevent more than one signal to be collected from a single detector during the coincidence window
-bool flag_DE = false;
-bool flag_FrontHE = false;
-bool flag_FrontLE = false;
-bool flag_BackHE = false;
-bool flag_BackLE = false;
-bool flag_Theta = false;
-
-bool flag_SiE = false;
-bool flag_SiDE = false;
-
 // Data to save for each coincidence window (updated each window)
-uint32_t save_FrontHE;
-uint32_t save_FrontLE;
-uint32_t save_BackHE;
-uint32_t save_BackLE;
-int save_Pos1;
-int save_Pos2;
-int save_DE;
-int save_E;
-int save_Theta;
+uint32_t FrontHE;
+uint32_t FrontLE;
+uint32_t BackHE;
+uint32_t BackLE;
+int E;
+int DE;
+int SiE;
+int SiDE;
 
-int save_SiE;
-int save_SiDE;
+int Pos1; // FrontHE - FrontLE (+ offset to center)
+int Pos2; // BackHE - BackLE (+ offset to center)
+int Theta; // TODO - May need to fix definition of Theta below
+
+// Converting window duration to timetag units (2 ns/unit - v1730)
+int win = (int) (win_ns/2.0);
+int winSi = (int) (winSi_ns/2.0);
+
+// Flags to prevent more than one signal to be collected from a single component during the coincidence window.
+// True when signal is detected during window.
+bool fE = false;
+bool fDE = false;
+bool fFrontHE = false;
+bool fFrontLE = false;
+bool fBackHE = false;
+bool fBackLE = false;
+bool fTheta = false;
+
+bool fSiE = false;
+bool fSiDE = false;
 //----------------------------------------------------------------------
 
 // 1D Spectra
@@ -185,99 +211,160 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   // double TDCsize = sizeof(dTDC)/sizeof(dTDC[0]);
   // std::cout << ADCsize << "  " << TDCsize << std::endl;
 
-  // v1730 Channels: 0 = Front HE, 1 = Front LE, 2 = Back HE, 3 = Back LE, 4 = E, 5 = DE, 6 = SiE, 7 = SiDE
+  int qlong, ch, time, cDet;
+  // Window start time - gets updated each trigger. The initial value here prevents having to do an extra if statement for the first trigger in the buffer.
+  int winStart = -win - 1;
+  int winStartSi = -winSi - 1;
 
-  uint32_t dat, ch, timetag;
-  int cDet;
-
-  // Energies (+ Ch #) are even nADC counts, timetags are odd counts (see ReadQLong in v1730DPP.c)
+  // Energies (and Ch #) are EVEN nADC counts, timetags are ODD counts (see ReadQLong in v1730DPP.c)
   for(int i = 0; i<nADC; i+=2){
-    // Define the channels
-    dat = dADC[i] & 0xFFFF; // dADC[i] includes channel # and qlong
+
+    // Extract energy, channel, and timetag from event
+    qlong = dADC[i] & 0xFFFF; // dADC[i] includes channel # and qlong (energy)
     ch = (dADC[i] & 0xFFFF0000) >> 16;
-    cDet = (int) std::floor(dat/4.0);
-    timetag = dADC[i+1];
-    
-    // Silicon detectors separate from focal plane trigger window
-    // Triggering on either SiE or SiDE and closing window automatically after a coincidence
-    if (enableCoinWindow_Si == false){
-      if (cDet > 20 && cDet < Channels1D){
-        if (ch == 6){ // SiE
-          enableCoinWindow_Si = true;
-          coinWindowStart_Si = (int) timetag;
-          flag_SiE = true;
-          save_SiE = cDet;
-          hSiE -> inc(cDet);
+    cDet = (int) std::floor(qlong/4.0); // TODO - This maxes out at 16,383, 2x Channels1D (8,192). Make sure this is okay.
+    time = (int) dADC[i+1];
+
+    // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately below)
+    if (cDet < Thresh || cDet > Channels1D){dADC[i]=0;}
+
+    //------------------- Si Window -------------------
+    // Triggering on either SiE or SiDE
+    if (ch == iSiE || ch == iSiDE){
+      // Check if Si coincidence window is still open (accounting for possible rollback to 0)
+      if ((time > winStartSi && time < winStartSi + winSi) || (winStartSi > timetagReset - winSi && time > winStartSi + winSi - timetagReset)){
+        // Check if the signal is from SiE and SiDE was the trigger
+        if (ch == iSiE && !fSiE && fSiDE){
+          // Coincidence! Increment histograms
+          fSiE = true;
+          SiE = cDet;
+          hSiE -> inc(SiE);
+          int SiEComp = (int) std::floor(SiE/4.0);
+          int SiDEComp = (int) std::floor(SiDE/4.0);
+          hSiDEvsSiE -> inc(SiEComp,SiDEComp);
         }
-        else if (ch == 7){ // SiDE
-          enableCoinWindow_Si = true;
-          coinWindowStart_Si = (int) timetag;
-          flag_SiDE = true;
-          save_SiDE = cDet;
-          hSiDE -> inc(cDet);
+        // Check if the signal is from SiDE and SiE was the trigger
+        else if (ch == iSiDE && !fSiDE && fSiE){
+          // Coincidence! Increment histograms
+          fSiDE = true;
+          SiDE = cDet;
+          hSiDE -> inc(SiDE);
+          int SiEComp = (int) std::floor(SiE/4.0);
+          int SiDEComp = (int) std::floor(SiDE/4.0);
+          hSiDEvsSiE -> inc(SiEComp,SiDEComp);
+        }
+      }
+      else{
+        // Previous window ended. Now open new window.
+        winStartSi = time;
+        if (ch == iSiE){
+          SiE = cDet;
+          hSiE -> inc(SiE);
+          fSiE = true;
+          fSiDE = false;
+        }
+        else if (ch == iSiDE){
+          SiDE = cDet;
+          hSiDE -> inc(SiDE);
+          fSiDE = true;
+          fSiE = false;
+        }
+      }
+    }
+    //----------------------------------------------------------
+    //------------------- Focal Plane Window -------------------
+    // Triggering on scintillator (E) for now
+    else if (ch == iFrontHE || ch == iFrontLE || ch == iBackHE || ch == iBackLE || ch == iE || ch == iDE){
+      // Check if FP coincidence window is still open (accounting for possible rollback to 0)
+      if ((time > winStart && time < winStart + win) || (winStart > timetagReset - win && time > winStart + win - timetagReset)){
+        
+      }
+      else if (ch == FPTrigger){
+        // Previous window ended. Now open new window.
+        winStart = time;
+        if (FPTrigger == iE){ // E Trigger
+          E = cDet;
+          hE -> inc(E);
+          fE = true;
+          fDE = false;
+          fFrontHE = false;
+          fFrontLE = false;
+          fBackHE = false;
+          fBackLE = false;
+          fTheta = false;
+
+          // E Gate
+          Gate &G = hE -> getGate(0);
+          if (G.inGate(E)){
+            hE_gE_G1 -> inc(E);
+          }
+        }
+        // If the trigger is Pos1 or Pos2, open the window, but we can't increment Pos histograms until we get a HE and LE coincidence (dealt with above)
+        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){
+          if (ch == iFrontHE){
+            fFrontHE = true;
+            fFrontLE = false;
+          }
+          else if (ch == iFrontLE){
+            fFrontLE = true;
+            fFrontHE = false;
+          }
+          fE = false;
+          fDE = false;
+          fBackHE = false;
+          fBackLE = false;
+          fTheta = false;
+        }
+        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){
+          if (ch == iBackHE){
+            fBackHE = true;
+            fBackLE = false;
+          }
+          else if (ch == iBackLE){
+            fBackLE = true;
+            fBackHE = false;
+          }
+          fE = false;
+          fDE = false;
+          fFrontHE = false;
+          fFrontLE = false;
+          fTheta = false;
+        }
+        else if (FPTrigger == iDE){ // DE Trigger
+          DE = cDet;
+          hDE -> inc(DE);
+          fDE = true;
+          fE = false;
+          fFrontHE = false;
+          fFrontLE = false;
+          fBackHE = false;
+          fBackLE = false;
+          fTheta = false;
         }
       }
     }
     else{
-      // Check if timetag is outside of Si coincidence window (taking into account timetag rollback to zero)
-      int int_timetag = (int) timetag;
-      if ((int_timetag > coinWindowStart_Si + coinWindow_Si) || (coinWindowStart_Si > 4294967296 - coinWindow_Si && int_timetag > coinWindowStart_Si + coinWindow_Si - 4294967296)){
-        enableCoinWindow_Si = false;
-        flag_SiE = false;
-        flag_SiDE = false;
-      }
-      else{
-        if (cDet > 20 && cDet < Channels1D){
-          if (ch == 6 && flag_SiE == false){ // SiE
-            flag_SiE = true;
-            save_SiE = cDet;
-            hSiE -> inc(cDet);
-
-            // 2D SiDE vs SiE
-            int scaled_SiE = (int) std::floor(save_SiE/4.0);
-            int scaled_SiDE = (int) std::floor(save_SiDE/4.0);
-            hSiDEvsSiE -> inc(scaled_SiE, scaled_SiDE);
-
-            // Automatically close window if both SiE and SiDE signals have been recorded
-            if (autoCoinWindowClose_Si == true){
-              enableCoinWindow_Si = false;
-              flag_SiE = false;
-              flag_SiDE = false;
-            }
-          }
-          else if (ch == 7 && flag_SiDE == false){ // SiDE
-            flag_SiDE = true;
-            save_SiDE = cDet;
-            hSiDE -> inc(cDet);
-
-            // 2D SiDE vs SiE
-            int scaled_SiE = (int) std::floor(save_SiE/4.0);
-            int scaled_SiDE = (int) std::floor(save_SiDE/4.0);
-            hSiDEvsSiE -> inc(scaled_SiE, scaled_SiDE);
-
-            // Automatically close window if both SiE and SiDE signals have been recorded
-            if (autoCoinWindowClose_Si == true){
-              enableCoinWindow_Si = false;
-              flag_SiE = false;
-              flag_SiDE = false;
-            }
-          }
-        }
-      }
+      std::cout << "Error: Unknown Channel" << std::endl;
     }
+  }
+}
 
-    // Triggering on scintillator (E)
-    if (enableCoinWindow == false){
+
+
+
+
+
+    if (winOpen == false){
       if (cDet > 20 && cDet < Channels1D){
         if (ch == 4){ // E
-          enableCoinWindow = true;
-          coinWindowStart = (int) timetag;
-          save_E = cDet;
-          hE -> inc(cDet);
+          winOpen = true;
+          winStart = (int) timetag;
+          E = cDet;
+          hE -> inc(E);
           // E Gate
           Gate &G = hE -> getGate(0);
-          if (G.inGate(cDet)){
-            hE_gE_G1 -> inc(cDet);
+          if (G.inGate(E)){
+            hE_gE_G1 -> inc(E);
           }
         }
       }
@@ -285,31 +372,31 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     else{
       // Check if timetag is outside of scintillator trigger window (taking into account timetag rollback to zero)
       int int_timetag = (int) timetag;
-      if ((int_timetag > coinWindowStart + coinWindow) || (coinWindowStart > 4294967296 - coinWindow && int_timetag > coinWindowStart + coinWindow - 4294967296)){
-        enableCoinWindow = false;
-        flag_DE = false;
-        flag_FrontHE = false;
-        flag_FrontLE = false;
-        flag_BackHE = false;
-        flag_BackLE = false;
-        flag_Theta = false;
+      if ((int_timetag > winStart + win) || (winStart > 4294967296 - win && int_timetag > winStart + win - 4294967296)){
+        winOpen = false;
+        fDE = false;
+        fFrontHE = false;
+        fFrontLE = false;
+        fBackHE = false;
+        fBackLE = false;
+        fTheta = false;
       }
       else{
         if (cDet > 20 && cDet < Channels1D){
-          if (ch == 5 && flag_DE == false){ // DE
-            flag_DE = true;
-            save_DE = cDet;
-            hDE -> inc(save_DE);
+          if (ch == 5 && fDE == false){ // DE
+            fDE = true;
+            DE = cDet;
+            hDE -> inc(DE);
 
             // 2D DE vs E
-            int scaled_E = (int) std::floor(save_E/4.0);
-            int scaled_DE = (int) std::floor(save_DE/4.0);
+            int scaled_E = (int) std::floor(E/4.0);
+            int scaled_DE = (int) std::floor(DE/4.0);
             hDEvsE -> inc(scaled_E, scaled_DE);
 
             // 2D DE vs Pos1
-            if (flag_FrontHE == true && flag_FrontLE == true){
+            if (fFrontHE == true && fFrontLE == true){
               // Cut off the outer-edges of the time range with center at 256. Adjust scaling by timeScale setting
-              int scaled_Pos1 = ((save_Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
+              int scaled_Pos1 = ((Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
               hDEvsPos1 -> inc(scaled_Pos1, scaled_DE);
 
               // DE vs Pos1 Gates
@@ -317,37 +404,37 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
               //G1.Print();
               if(G1.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G1 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G1 -> inc(Pos1);
               }
 
               Gate &G2 = hDEvsPos1 -> getGate(1);
               //G2.Print();
               if(G2.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G2 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G2 -> inc(Pos1);
               }
             }
           }
         }
-        if (ch == 0 && flag_FrontHE == false){
-          flag_FrontHE = true;
-          save_FrontHE = timetag;
+        if (ch == 0 && fFrontHE == false){
+          fFrontHE = true;
+          FrontHE = timetag;
           // Coincidence Pos1
-          if (flag_FrontLE == true){
-            int int_FrontHE = (int) save_FrontHE;
-            int int_FrontLE = (int) save_FrontLE; 
+          if (fFrontLE == true){
+            int int_FrontHE = (int) FrontHE;
+            int int_FrontLE = (int) FrontLE; 
             int diff_Pos1 = int_FrontHE - int_FrontLE; // HE - LE is the referrence
-            save_Pos1 = diff_Pos1 + (Channels1D / 2); // offset to center
-            hPos1 -> inc(save_Pos1);
+            Pos1 = diff_Pos1 + (Channels1D / 2); // offset to center
+            hPos1 -> inc(Pos1);
 
             // 2D E vs Pos1
-            int scaled_E = (int) std::floor(save_E/4.0);
-            int scaled_Pos1 = ((save_Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
+            int scaled_E = (int) std::floor(E/4.0);
+            int scaled_Pos1 = ((Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
             hEvsPos1 -> inc(scaled_Pos1, scaled_E);
 
             // 2D DE vs Pos1
-            if (flag_DE == true){
-              int scaled_DE = (int) std::floor(save_DE/4.0);
+            if (fDE == true){
+              int scaled_DE = (int) std::floor(DE/4.0);
               hDEvsPos1 -> inc(scaled_Pos1, scaled_DE);
 
               // DE vs Pos1 Gates
@@ -355,37 +442,37 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
               //G1.Print();
               if(G1.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G1 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G1 -> inc(Pos1);
               }
 
               Gate &G2 = hDEvsPos1 -> getGate(1);
               //G2.Print();
               if(G2.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G2 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G2 -> inc(Pos1);
               }
             }
           }
         }
-        else if (ch == 1 && flag_FrontLE == false){
-          flag_FrontLE = true;
-          save_FrontLE = timetag;
+        else if (ch == 1 && fFrontLE == false){
+          fFrontLE = true;
+          FrontLE = timetag;
           // Coincidence Pos1
-          if (flag_FrontHE == true){
-            int int_FrontHE = (int) save_FrontHE;
-            int int_FrontLE = (int) save_FrontLE;
+          if (fFrontHE == true){
+            int int_FrontHE = (int) FrontHE;
+            int int_FrontLE = (int) FrontLE;
             int diff_Pos1 = int_FrontHE - int_FrontLE; // HE - LE is the referrence
-            save_Pos1 = diff_Pos1 + (Channels1D / 2); // offset to center
-            hPos1 -> inc(save_Pos1);
+            Pos1 = diff_Pos1 + (Channels1D / 2); // offset to center
+            hPos1 -> inc(Pos1);
 
             // 2D E vs Pos1
-            int scaled_E = (int) std::floor(save_E/4.0);
-            int scaled_Pos1 = ((save_Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
+            int scaled_E = (int) std::floor(E/4.0);
+            int scaled_Pos1 = ((Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
             hEvsPos1 -> inc(scaled_Pos1, scaled_E);
 
             // 2D DE vs Pos1
-            if (flag_DE == true){
-              int scaled_DE = (int) std::floor(save_DE/4.0);
+            if (fDE == true){
+              int scaled_DE = (int) std::floor(DE/4.0);
               hDEvsPos1 -> inc(scaled_Pos1, scaled_DE);
 
               // DE vs Pos1 Gates
@@ -393,65 +480,65 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
               //G1.Print();
               if(G1.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G1 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G1 -> inc(Pos1);
               }
 
               Gate &G2 = hDEvsPos1 -> getGate(1);
               //G2.Print();
               if(G2.inGate(scaled_Pos1,scaled_DE)){
                 gateCounter++;
-                hPos1_gDEvPos1_G2 -> inc(save_Pos1);
+                hPos1_gDEvPos1_G2 -> inc(Pos1);
               }
             }
           }
         }
-        else if (ch == 2 && flag_BackHE == false){
-          flag_BackHE = true;
-          save_BackHE = timetag;
+        else if (ch == 2 && fBackHE == false){
+          fBackHE = true;
+          BackHE = timetag;
           // Coincidence Pos2
-          if (flag_BackLE == true){
-            int int_BackHE = (int) save_BackHE;
-            int int_BackLE = (int) save_BackLE;
+          if (fBackLE == true){
+            int int_BackHE = (int) BackHE;
+            int int_BackLE = (int) BackLE;
             int diff_Pos2 = int_BackHE - int_BackLE; // HE - LE is the referrence
-            save_Pos2 = diff_Pos2 + (Channels1D / 2); // offset to center
-            hPos2 -> inc(save_Pos2);
+            Pos2 = diff_Pos2 + (Channels1D / 2); // offset to center
+            hPos2 -> inc(Pos2);
           }
         }
-        else if (ch == 3 && flag_BackLE == false){
-          flag_BackLE = true;
-          save_BackLE = timetag;
+        else if (ch == 3 && fBackLE == false){
+          fBackLE = true;
+          BackLE = timetag;
           // Coincidence Pos2
-          if (flag_BackHE == true){
-            int int_BackHE = (int) save_BackHE;
-            int int_BackLE = (int) save_BackLE;
+          if (fBackHE == true){
+            int int_BackHE = (int) BackHE;
+            int int_BackLE = (int) BackLE;
             int diff_Pos2 = int_BackHE - int_BackLE; // HE - LE is the referrence
-            save_Pos2 = diff_Pos2 + (Channels1D / 2); // offset to center
-            hPos2 -> inc(save_Pos2);
+            Pos2 = diff_Pos2 + (Channels1D / 2); // offset to center
+            hPos2 -> inc(Pos2);
           }
         }
         // Theta and Pos2 vs Pos1
-        if (flag_FrontHE == true && flag_FrontLE == true && flag_BackHE == true && flag_BackLE == true && flag_Theta == false){
-          flag_Theta == true;
-          int Theta = (int) std::round(10000.0*atan((save_Pos2 - save_Pos1)/100.)/3.1415 - 4000.);
-          save_Theta = std::max(0,Theta);
-          hTheta -> inc(save_Theta);
+        if (fFrontHE == true && fFrontLE == true && fBackHE == true && fBackLE == true && fTheta == false){
+          fTheta == true;
+          Theta = (int) std::round(10000.0*atan((Pos2 - Pos1)/100.)/3.1415 - 4000.); // TODO Is this still correct?
+          Theta = std::max(0,Theta);
+          hTheta -> inc(Theta);
           // Theta vs Pos1
-          int scaled_Pos1 = ((save_Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
-          hThetavsPos1 -> inc(scaled_Pos1, save_Theta); // Should theta be scaled? It is in EngeSort. But should this be treated like a coin. time or energy or something else?
+          int scaled_Pos1 = ((Pos1 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
+          hThetavsPos1 -> inc(scaled_Pos1, Theta); // Should theta be scaled? It is in EngeSort. But should this be treated like a coin. time or energy or something else?
           // Pos2 vs Pos1
-          int scaled_Pos2 = ((save_Pos2 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
+          int scaled_Pos2 = ((Pos2 - (Channels1D / 2)) / timeScale) + (Channels2D / 2);
           hPos2vsPos1 -> inc(scaled_Pos1, scaled_Pos2);
         }
         // Automatically close window if all coincidences have been recorded
-        if (flag_FrontHE == true && flag_FrontLE == true && flag_BackHE == true && flag_BackLE == true && flag_Theta == true && flag_DE == true){
-          if (autoCoinWindowClose == true){
-            enableCoinWindow = false;
-            flag_DE = false;
-            flag_FrontHE = false;
-            flag_FrontLE = false;
-            flag_BackHE = false;
-            flag_BackLE = false;
-            flag_Theta = false;
+        if (fFrontHE == true && fFrontLE == true && fBackHE == true && fBackLE == true && fTheta == true && fDE == true){
+          if (autoClose == true){
+            winOpen = false;
+            fDE = false;
+            fFrontHE = false;
+            fFrontLE = false;
+            fBackHE = false;
+            fBackLE = false;
+            fTheta = false;
           }
         }
       }

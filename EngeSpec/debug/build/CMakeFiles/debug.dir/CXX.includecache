@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/wcfox/Documents/CAEN_Digitizer/daq/DigitalDAQ/EngeSpec/debug/debug.cpp
+stdio.h
+-
+stdint.h
+-
+stdlib.h
+-
+string.h
+-
+unistd.h
+-
+iostream
+-
+fstream
+-
+errno.h
+-
+cmath
+-
+climits
+-
+
