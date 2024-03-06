@@ -1,13 +1,28 @@
-{0,1}      ## Enable Channels (0-15) e.g. --> {0,1,2,3}
-700        ## Long gate (ns)
+/********************************************************************\
+
+  Name:         settings-DPP.dat
+  Created by:   W. Fox
+
+  Contents:     Settings file for the Enge DAQ using the CAEN V1730.
+                File is read and settings are applied by the frontend:
+                fev1730-DPP.cxx. Settings defined in v1730DPP.c.
+          
+  Usage:        For settings applied to individual channels, use comma-
+                separated values corresponding to "Enabled Channels".
+                For settings applied to all channels, use a single value.
+
+$Id$
+\********************************************************************/
+4,6        ## Enabled Channels (0-15)
+700,800    ## Long gate (ns)
 400        ## Short gate (ns)
-110        ## Gate offset (ns)
+110,120    ## Gate offset (ns)
 0          ## Trigger Hold-Off (ns, multiple of 8 - If too low, automatically adjusts to lowest)
 0          ## Pre Trigger (ns, multiple of 8, must be > Gate Offset - If too low, automatically adjusts to lowest)
-1	       ## Gain (0-5)
+1,2	       ## Gain (0-5)
 1          ## negSignals (1=yes, 0=no)
 32767      ## DC Offset (in DAC LSB Units)
-3          ## Trigger threshold (in mV)
+3,5        ## Trigger threshold (in mV)
 40 	       ## CFD Delay (ns)
 75         ## CFD Fraction (%)
 

@@ -64,8 +64,8 @@ extern "C" {
 
   void v1730DPP_setGainG(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain);
   void v1730DPP_setGain(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain, int channel);
-  void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
-  void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setDiscriminationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setTriggerCountingModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);

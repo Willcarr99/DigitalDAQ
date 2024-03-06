@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/wcfox/Documents/CAEN_Digitizer/daq/DigitalDAQ/debug/debug.cpp
+string.h
+-
+iostream
+-
+fstream
+-
+vector
+-
+bits/stdc++.h
+-
+

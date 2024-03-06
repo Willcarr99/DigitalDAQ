@@ -746,7 +746,7 @@ void v1730DPP_setGain(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain, int ch
 }
 
 /*****************************************************************/
-void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+void v1730DPP_setDiscriminationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
 
   if((mode > 1) | (mode < 0)){
@@ -755,9 +755,9 @@ void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode
   }
   switch(mode){
     case 0:
-      printf("Trigger mode for all channels set to LED\n"); break;
+      printf("Discrimination mode for all channels set to LED\n"); break;
     case 1:
-      printf("Trigger mode for all channels set to CFD\n"); break;
+      printf("Discrimination mode for all channels set to CFD\n"); break;
   }
 
   // Read the current algorithm control register, then add this new trigger mode
@@ -767,7 +767,7 @@ void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode
   regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
 }
 /*****************************************************************/
-void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
 
   if((mode > 1) | (mode < 0)){
@@ -776,9 +776,9 @@ void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode,
   }
   switch(mode){
     case 0:
-      printf("Trigger mode for channel %d set to LED\n",channel); break;
+      printf("Discrimination mode for channel %d set to LED\n",channel); break;
     case 1:
-      printf("Trigger mode for channel %d set to CFD\n",channel); break;
+      printf("Discrimination mode for channel %d set to CFD\n",channel); break;
   }
 
   // Channel mask
@@ -890,7 +890,7 @@ void v1730DPP_setBaselineCalcRestartG(MVME_INTERFACE *mvme, uint32_t base, uint3
             printf("Baseline calculation restarts at the end of the long gate\n"); break;
     }
     
-  // Read the current algorithm control register, then add this new trigger pile-up setting
+  // Read the current algorithm control register, then add this new baseline calc setting
   uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
   value = value | mode << 15;
   
@@ -913,7 +913,7 @@ void v1730DPP_setBaselineCalcRestart(MVME_INTERFACE *mvme, uint32_t base, uint32
   // Channel mask
   uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
     
-  // Read the current algorithm control register, then add this new trigger pile-up setting
+  // Read the current algorithm control register, then add this new baseline calc setting
   uint32_t value = regRead(mvme, base, reg);
   value = value | mode << 15;
   
@@ -1395,7 +1395,7 @@ void v1730DPP_getFirmwareRev(MVME_INTERFACE *mvme, uint32_t base){
 void v1730DPP_ReadAndApplySettings(MVME_INTERFACE *mvme, uint32_t base){
 
   uint32_t tlong, tshort, toffset, trigHoldOff, preTrig, inputSmoothing, meanBaseline;
-  uint32_t negSignals, dRange, trigMode, trigCountMode, trigPileUp, oppPol, restartBaseline;
+  uint32_t negSignals, dRange, discrimMode, trigCountMode, trigPileUp, oppPol, restartBaseline;
   uint32_t offset, cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh;
   
   uint32_t enableCh[16] = {};
@@ -1446,7 +1446,7 @@ void v1730DPP_ReadAndApplySettings(MVME_INTERFACE *mvme, uint32_t base){
   f.ignore(200,'\n');
   f >> restartBaseline;
   f.ignore(200,'\n');
-  f >> trigMode;
+  f >> discrimMode;
   f.ignore(200,'\n');
   f >> trigCountMode;
   f.ignore(200,'\n');
@@ -1485,7 +1485,7 @@ void v1730DPP_ReadAndApplySettings(MVME_INTERFACE *mvme, uint32_t base){
   std::cout << "Mean Baseline Calc = " << meanBaseline << std::endl;
   std::cout << "Fixed Baseline = " << fixedBaseline << std::endl;
   std::cout << "Restart Baseline after Long Gate = " << restartBaseline << std::endl;
-  std::cout << "Trigger Mode = " << trigMode << std::endl;
+  std::cout << "Discrimination Mode = " << discrimMode << std::endl;
   std::cout << "Trigger Counting Mode = " << trigCountMode << std::endl;
   std::cout << "Trigger Pile Up = " << trigPileUp << std::endl;
   std::cout << "Opposite Polarity Signals = " << oppPol << std::endl;
@@ -1543,7 +1543,7 @@ void v1730DPP_ReadAndApplySettings(MVME_INTERFACE *mvme, uint32_t base){
   v1730DPP_setPreTriggerG(mvme, base, preTrig);
   v1730DPP_setThresholdG(mvme, base, cThresh);
   v1730DPP_setDCOffsetG(mvme, base, offset);
-  v1730DPP_setTriggerModeG(mvme, base, trigMode); // 0 - LED mode, 1 - CFD mode
+  v1730DPP_setDiscriminationModeG(mvme, base, discrimMode); // 0 - LED mode, 1 - CFD mode
   v1730DPP_setTriggerCountingModeG(mvme, base, trigCountMode); // 0 - only accepted self-triggers, 1 - all self-triggers
   v1730DPP_setTriggerPileupG(mvme, base, trigPileUp); // 0 - disabled (default), 1 - enabled
 

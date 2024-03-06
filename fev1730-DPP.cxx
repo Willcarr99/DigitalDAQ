@@ -498,7 +498,7 @@ INT frontend_init()
   int status;
 
 
-  std::cout << "Initialising frontend" << std::endl;
+  cout << "Initialising frontend" << endl;
 
   setbuf(stdout,NULL);
   setbuf(stderr,NULL);

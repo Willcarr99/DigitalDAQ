@@ -216,6 +216,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   int winStart = -win - 1;
   int winStartSi = -winSi - 1;
 
+  // Data for each event is stored in 2 32-bit memory locations. 
   // Energies (and Ch #) are EVEN nADC counts, timetags are ODD counts (see ReadQLong in v1730DPP.c)
   for(int i = 0; i<nADC; i+=2){
 
@@ -225,15 +226,15 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     cDet = (int) std::floor(qlong/4.0); // TODO - This maxes out at 16,383, 2x Channels1D (8,192). Make sure this is okay.
     time = (int) dADC[i+1];
 
-    // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately below)
+    // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately in FP coincidence window below)
     if (cDet < Thresh || cDet > Channels1D){dADC[i]=0;}
 
     //------------------- Si Window -------------------
     // Triggering on either SiE or SiDE
     if (ch == iSiE || ch == iSiDE){
-      // Check if Si coincidence window is still open (accounting for possible rollback to 0)
+      // Check if Si coincidence window is already open (accounting for possible rollback to 0)
       if ((time > winStartSi && time < winStartSi + winSi) || (winStartSi > timetagReset - winSi && time > winStartSi + winSi - timetagReset)){
-        // Check if the signal is from SiE and SiDE was the trigger
+        // Check if the signal is from SiE and SiDE was the trigger, ignoring multiple occurrences of SiE
         if (ch == iSiE && !fSiE && fSiDE){
           // Coincidence! Increment histograms
           fSiE = true;
@@ -243,7 +244,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           int SiDEComp = (int) std::floor(SiDE/4.0);
           hSiDEvsSiE -> inc(SiEComp,SiDEComp);
         }
-        // Check if the signal is from SiDE and SiE was the trigger
+        // Check if the signal is from SiDE and SiE was the trigger, ignoring multiple occurrences of SiDE
         else if (ch == iSiDE && !fSiDE && fSiE){
           // Coincidence! Increment histograms
           fSiDE = true;
@@ -255,7 +256,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         }
       }
       else{
-        // Previous window ended. Now open new window.
+        // Previous window ended. Now open new window from trigger.
         winStartSi = time;
         if (ch == iSiE){
           SiE = cDet;
@@ -273,11 +274,78 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     }
     //----------------------------------------------------------
     //------------------- Focal Plane Window -------------------
-    // Triggering on scintillator (E) for now
+    // Triggering on FPTrigger specified by user
     else if (ch == iFrontHE || ch == iFrontLE || ch == iBackHE || ch == iBackLE || ch == iE || ch == iDE){
-      // Check if FP coincidence window is still open (accounting for possible rollback to 0)
+      // Check if FP coincidence window is still open (accounting for possible timetag rollback to 0)
       if ((time > winStart && time < winStart + win) || (winStart > timetagReset - win && time > winStart + win - timetagReset)){
-        
+        if (FPTrigger == iE){ // E Trigger
+          if (ch == iFrontHE && !fFrontHE){ // Pos1 HE signal
+            
+          }
+          else if (ch == iFrontLE && !fFrontLE){ // Pos1 LE signal
+
+          }
+          else if (ch == iBackHE && !fBackHE){ // Pos2 HE signal
+
+          }
+          else if (ch == iBackLE && !fBackLE){ // Pos2 LE signal
+
+          }
+          else if (ch == iDE && !fDE){ // DE signal
+
+          }
+        }
+        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){
+          if (ch == iE && !fE){ // E signal
+
+          }
+          else if ((ch == iFrontHE && !fFrontHE) || (ch == iFrontLE && !fFrontLE)){ // Coincidence: Pos1 HE and LE
+            
+          }
+          else if (ch == iBackHE && !fBackHE){ // Pos2 HE signal
+            // Check if Pos2 coincidence
+          }
+          else if (ch == iBackLE && !fBackLE){ // Pos2 LE signal
+            // Check if Pos2 coincidence
+          }
+          else if (ch == iDE && !fDE){ // DE signal
+
+          }
+        }
+        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){
+          if (ch == iE && !fE){ // E signal
+
+          }
+          else if (ch == iFrontHE && !fFrontHE){ // Pos1 HE signal
+            // Check if Pos1 coincidence
+          }
+          else if (ch == iFrontLE && !fFrontLE){ // Pos1 LE signal
+            // Check if Pos1 coincidence
+          }
+          else if ((ch == iBackHE && !fBackHE) || (ch == iBackLE && !fBackLE)){ // Coincidence: Pos2 HE and LE
+
+          }
+          else if (ch == iDE && !fDE){ // DE signal
+
+          }
+        }
+        else if (FPTrigger == iDE){
+          if (ch == iE && !fE){ // E signal
+
+          }
+          else if (ch == iFrontHE && !fFrontHE){ // Pos1 HE signal
+            
+          }
+          else if (ch == iFrontLE && !fFrontLE){ // Pos1 LE signal
+
+          }
+          else if (ch == iBackHE && !fBackHE){ // Pos2 HE signal
+
+          }
+          else if (ch == iBackLE && !fBackLE){ // Pos2 LE signal
+
+          }
+        }
       }
       else if (ch == FPTrigger){
         // Previous window ended. Now open new window.
@@ -299,8 +367,8 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             hE_gE_G1 -> inc(E);
           }
         }
-        // If the trigger is Pos1 or Pos2, open the window, but we can't increment Pos histograms until we get a HE and LE coincidence (dealt with above)
-        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){
+        // If the trigger is Pos1, open the window, but we can't increment Pos1 histogram until we get a HE and LE coincidence (dealt with above)
+        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){ // Pos1 trigger
           if (ch == iFrontHE){
             fFrontHE = true;
             fFrontLE = false;
@@ -315,7 +383,8 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           fBackLE = false;
           fTheta = false;
         }
-        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){
+        // If the trigger is Pos2, open the window, but we can't increment Pos2 histogram until we get a HE and LE coincidence (dealt with above)
+        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){ // Pos2 trigger
           if (ch == iBackHE){
             fBackHE = true;
             fBackLE = false;
