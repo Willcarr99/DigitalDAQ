@@ -18,7 +18,7 @@ $Id$
 400        ## Short gate (ns)
 110,120    ## Gate offset (ns)
 0          ## Trigger Hold-Off (ns, multiple of 8 - If too low, automatically adjusts to lowest)
-0          ## Pre Trigger (ns, multiple of 8, must be > Gate Offset - If too low, automatically adjusts to lowest)
+0          ## Pre Trigger (ns, multiple of 8, must be > Gate Offset - If too low, auto adjusts to Gate Offset + 38 ns)
 1,2	       ## Gain (0-5)
 1          ## negSignals (1=yes, 0=no)
 32767      ## DC Offset (in DAC LSB Units)

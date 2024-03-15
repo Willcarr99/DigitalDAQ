@@ -18,10 +18,10 @@ std::string EngeSort::saygoodbye( ) {
 //---------------------------- Settings --------------------------------
 //----------------------------------------------------------------------
 // Number of channels in 1D and 2D histograms
-int Channels1D = 8192;
-int Channels2D = 512;
+int Channels1D = 8192; // TODO - Test this scale (was 4096)
+int Channels2D = 1024; // TODO - Test this scale (was 512)
 
-// qlong threshold
+// cDet threshold (Channels1D scale, 0-8191)
 int Thresh = 20;
 
 // Define the channels (0-15)
@@ -60,10 +60,10 @@ int timeScale = 1;
 
 //------------------ Global sort routine variables --------------------
 // Data to save for each coincidence window (updated each window)
-uint32_t FrontHE;
-uint32_t FrontLE;
-uint32_t BackHE;
-uint32_t BackLE;
+int FrontHE;
+int FrontLE;
+int BackHE;
+int BackLE;
 int E;
 int DE;
 int SiE;
@@ -211,7 +211,9 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   // double TDCsize = sizeof(dTDC)/sizeof(dTDC[0]);
   // std::cout << ADCsize << "  " << TDCsize << std::endl;
 
-  int qlong, ch, time, cDet;
+  int ch, time; // 32-bit signed integer. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer, so int cast is ok. The MSB is always 0.
+  int16_t qlong, cDet; // 16-bit signed integers. Qlong is a 16-bit signed integer in a 32-bit unsigned buffer (pg 100-101 of manual). So qlong range is -32768 to 32767. cDet range is -8192 to 8191. Negative cDet values are coverted to 0 by the threshold check.
+
   // Window start time - gets updated each trigger. The initial value here prevents having to do an extra if statement for the first trigger in the buffer.
   int winStart = -win - 1;
   int winStartSi = -winSi - 1;
@@ -221,13 +223,13 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   for(int i = 0; i<nADC; i+=2){
 
     // Extract energy, channel, and timetag from event
-    qlong = dADC[i] & 0xFFFF; // dADC[i] includes channel # and qlong (energy)
-    ch = (dADC[i] & 0xFFFF0000) >> 16;
-    cDet = (int) std::floor(qlong/4.0); // TODO - This maxes out at 16,383, 2x Channels1D (8,192). Make sure this is okay.
+    qlong = (int16_t) (dADC[i] & 0xFFFF); // dADC[i] includes channel # and qlong (energy). qlong max = 65535
+    ch = (int) (dADC[i] & 0xFFFF0000) >> 16;
+    cDet = (int16_t) std::floor(qlong/4.0); // TODO - This maxes out at Channels1D (8,192).
     time = (int) dADC[i+1];
 
     // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately in FP coincidence window below)
-    if (cDet < Thresh || cDet > Channels1D){dADC[i]=0;}
+    if (cDet < Thresh || cDet > Channels1D - 1){dADC[i]=0;} // TODO - To move 8192 spike to 0, use >=
 
     //------------------- Si Window -------------------
     // Triggering on either SiE or SiDE
@@ -240,8 +242,8 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           fSiE = true;
           SiE = cDet;
           hSiE -> inc(SiE);
-          int SiEComp = (int) std::floor(SiE/4.0);
-          int SiDEComp = (int) std::floor(SiDE/4.0);
+          int SiEComp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
+          int SiDEComp = (int) std::floor(SiDE/8.0);
           hSiDEvsSiE -> inc(SiEComp,SiDEComp);
         }
         // Check if the signal is from SiDE and SiE was the trigger, ignoring multiple occurrences of SiDE
@@ -250,8 +252,8 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           fSiDE = true;
           SiDE = cDet;
           hSiDE -> inc(SiDE);
-          int SiEComp = (int) std::floor(SiE/4.0);
-          int SiDEComp = (int) std::floor(SiDE/4.0);
+          int SiEComp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
+          int SiDEComp = (int) std::floor(SiDE/8.0);
           hSiDEvsSiE -> inc(SiEComp,SiDEComp);
         }
       }
@@ -260,13 +262,13 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         winStartSi = time;
         if (ch == iSiE){
           SiE = cDet;
-          hSiE -> inc(SiE);
+          hSiE -> inc(SiE); // TODO - Do we want this to increment even if no coincidence?
           fSiE = true;
           fSiDE = false;
         }
         else if (ch == iSiDE){
           SiDE = cDet;
-          hSiDE -> inc(SiDE);
+          hSiDE -> inc(SiDE); // TODO - Do we want this to increment even if no coincidence?
           fSiDE = true;
           fSiE = false;
         }
@@ -295,7 +297,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
           }
         }
-        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){
+        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){ // Front Trigger
           if (ch == iE && !fE){ // E signal
 
           }
@@ -312,7 +314,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
           }
         }
-        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){
+        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){ // Back Trigger
           if (ch == iE && !fE){ // E signal
 
           }
@@ -329,7 +331,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
           }
         }
-        else if (FPTrigger == iDE){
+        else if (FPTrigger == iDE){ // DE Trigger
           if (ch == iE && !fE){ // E signal
 
           }
@@ -421,7 +423,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
 
 
-
+/*
 
     if (winOpen == false){
       if (cDet > 20 && cDet < Channels1D){
@@ -612,8 +614,9 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         }
       }
     }
-  }
-}
+*/
+//  }
+//}
 //======================================================================
 
 // Connect the analyzer to midas
