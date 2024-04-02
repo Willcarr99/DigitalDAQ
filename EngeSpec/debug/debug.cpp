@@ -32,8 +32,8 @@ int FPTrigger = iE; // Scintillator (E)
 // Note: Si triggers on EITHER SiE or SiDE
 
 // Coincidence Windows for Focal Plane and Si Detector (in ns, number must be even)
-int win_ns = 5000;
-int winSi_ns = 5000;
+int win_ns = 1000;
+int winSi_ns = 1000;
 
 // Max value of the timetag, at which point it rolls back to 0
 // Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483647 or 0x7FFFFFFF or INT_MAX
@@ -61,6 +61,17 @@ int Pos1; // FrontHE - FrontLE (+ offset to center)
 int Pos2; // BackHE - BackLE (+ offset to center)
 int Theta; // TODO - May need to fix definition of Theta below
 
+int Pos1comp; // compressed for 2D histograms
+int Pos2comp;
+int Ecomp;
+int DEcomp;
+int SiEcomp;
+int SiDEcomp;
+
+const double pSiSlope = 0.3; // TODO - Need to read parameters.dat file with pSiSlope value
+int SiTotalE;
+int SiTotalEcomp;
+
 // Converting window duration to timetag units (2 ns/unit - v1730)
 int win = (int) (win_ns/2.0);
 int winSi = (int) (winSi_ns/2.0);
@@ -86,20 +97,25 @@ int main(){
   // Give example qlong and timetag data for debugging purposes
   const int nADC = 8; // Number of memory locations in single aggregate - 2 per event (max 1023 * 2 = 2046). 4 events --> 8
   // First event:  qlong = 8192 (cDet = 2048), ch = iSiDE (7), timetag = 8 (16 ns)      Starts window
-  // Second event: qlong = 8448 (cDet = 2112), ch = iSiE (6),  timetag = 1000 (2000 ns)  True coincidence.
-  // Third event:  qlong = 6536 (cDet = 1634), ch = iSiDE (7), timetag = 2000 (4000 ns)  Within coincidence window, but ignore.
-  // Fourth event: qlong = 37120 (cDet = 9280), ch = iSiE (6),  timetag = 2600 (5200 ns)  Outside window. Start new window.
-  // uint32_t dADC[nADC] = {0x2000, 0x8, 0x2100, 0x3E8, 0x1988, 0x7D0, 0x9100, 0xA28}; // qlong without ch
-  uint32_t dADC[nADC] = {0x72000, 0x8, 0x62100, 0x3E8, 0x71988, 0x7D0, 0x69100, 0xA28}; // qlong | ch included
+  // Second event: qlong = 8448 (cDet = 2112), ch = iSiE (6),  timetag = 100 (200 ns)  True coincidence.
+  // Third event:  qlong = 6536 (cDet = 1634), ch = iSiDE (7), timetag = 200 (400 ns)  Within coincidence window, but ignore.
+  // Fourth event: qlong = 37120 (cDet = 9280), ch = iSiE (6),  timetag = 800 (1600 ns)  Outside window. Start new window.
+  // uint32_t dADC[nADC] = {0x2000, 0x8, 0x2100, 0x64, 0x1988, 0xC8, 0x9100, 0x320}; // qlong without ch
+  uint32_t dADC[nADC] = {0x72000, 0x8, 0x62100, 0x64, 0x71988, 0xC8, 0x69100, 0x320}; // qlong | ch included
 
-  int ch, time; // 32-bit signed integer. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer, so int cast is ok. The MSB is always 0.
-  int16_t qlong, cDet; // 16-bit signed integers. Qlong is a 16-bit signed integer in a 32-bit unsigned buffer (pg 100-101 of manual). So qlong range is -32768 to 32767. cDet range is -8192 to 8191. Negative cDet values are coverted to 0 by the threshold check.
+// 32-bit signed integers. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer buffer, so int cast is ok. The MSB is always 0.
+  int ch, time;
+
+  // 16-bit signed integers. Qlong is a 16-bit signed integer in a 32-bit unsigned buffer (pg 100-101 of manual).
+  // So qlong range is -32768 to 32767. cDet range is -8192 to 8191. Negative cDet values are coverted to 0 by the threshold check.
+  int16_t qlong, cDet;
 
   // Window start time - gets updated each trigger. The initial value here prevents having to do an extra if statement for the first trigger in the buffer.
   int winStart = -win - 1;
   int winStartSi = -winSi - 1;
 
-  // Energies (and Ch #) are EVEN nADC counts, timetags are ODD counts (see ReadQLong in v1730DPP.c)
+  // Data for each event is stored in 2 32-bit unsigned integer memory locations. 
+  // Energies, i.e. qlong, (and Ch #) are EVEN dADC counts, timetags are ODD counts (see ReadQLong in v1730DPP.c)
   for(int i = 0; i<nADC; i+=2){
     //std::cout << "Event #" << (i+2)/2 << " qlong_ch dADC = " << dADC[i] << std::endl;
     //std::cout << "Event #" << (i+2)/2 << " timetag dADC = " << dADC[i+1] << std::endl;
@@ -128,12 +144,23 @@ int main(){
           fSiE = true;
           SiE = (int) cDet;
           //hSiE -> inc(SiE);
-          int SiEComp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
-          int SiDEComp = (int) std::floor(SiDE/8.0);
-          std::cout << "SiEComp: " << SiEComp << std::endl;
-          std::cout << "SiDEComp: " << SiDEComp << std::endl;
+          SiEcomp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
+          std::cout << "SiEcomp: " << SiEcomp << std::endl;
+          std::cout << "SiDEcomp: " << SiDEcomp << std::endl;
           //hSiDEvsSiE -> inc(SiEComp,SiDEComp);
           std::cout << "Increment SiE and SiDEvsSiE" << std::endl;
+          SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
+          SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
+          std::cout << "SiTotalE: " << SiTotalE << std::endl;
+          std::cout << "SiTotalEcomp: " << SiTotalEcomp << std::endl;
+          //Gate &G3 = hSiDEvsSiE -> getGate(0);
+          ////G3.Print();
+          //if (G3.inGate(SiEcomp,SiDEcomp)){
+          //  gateCounter++;
+          //  hSiE_G_SiDEvsSiE -> inc(SiE);
+          //  hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
+          //  hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
+          //}
         }
         // Check if the signal is from SiDE and SiE initiated the window
         else if (ch == iSiDE && !fSiDE && fSiE){
@@ -141,12 +168,23 @@ int main(){
           fSiDE = true;
           SiDE = (int) cDet;
           //hSiDE -> inc(SiDE);
-          int SiEComp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
-          int SiDEComp = (int) std::floor(SiDE/8.0);
-          std::cout << "SiEComp: " << SiEComp << std::endl;
-          std::cout << "SiDEComp: " << SiDEComp << std::endl;
+          SiDEcomp = (int) std::floor(SiDE/8.0); // TODO - This maxes out at 1,024
+          std::cout << "SiEcomp: " << SiEcomp << std::endl;
+          std::cout << "SiDEcomp: " << SiDEcomp << std::endl;
           //hSiDEvsSiE -> inc(SiEComp,SiDEComp);
           std::cout << "Increment SiDE and SiDEvsSiE" << std::endl;
+          SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
+          SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
+          std::cout << "SiTotalE: " << SiTotalE << std::endl;
+          std::cout << "SiTotalEcomp: " << SiTotalEcomp << std::endl;
+          //Gate &G3 = hSiDEvsSiE -> getGate(0);
+          ////G3.Print();
+          //if (G3.inGate(SiEcomp,SiDEcomp)){
+          //  gateCounter++;
+          //  hSiE_G_SiDEvsSiE -> inc(SiE);
+          //  hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
+          //  hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
+          //}
         }
       }
       else {
@@ -157,6 +195,7 @@ int main(){
           SiE = (int) cDet;
           //hSiE -> inc(SiE); // TODO - Do we want to increment histograms even if no coincidence occurred?
           std::cout << "Increment SiE" << std::endl;
+          SiEcomp = (int) std::floor(SiE/8.0); // TODO - This maxes out at 1,024
           fSiE = true;
           fSiDE = false;
         }
@@ -164,6 +203,7 @@ int main(){
           SiDE = (int) cDet;
           //hSiDE -> inc(SiDE); // TODO - Do we want to increment histograms even if no coincidence occurred?
           std::cout << "Increment SiDE" << std::endl;
+          SiDEcomp = (int) std::floor(SiDE/8.0); // TODO - This maxes out at 1,024
           fSiDE = true;
           fSiE = false;
         }
