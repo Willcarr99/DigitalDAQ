@@ -20,3 +20,11 @@ Need to rethink the coincidence logic. It is a good start, but does not account 
 1.) A single particle triggers Si DE first, then appears in Si E, then scatters backwards to appear in Si DE again?
         - As the code is now, the coincidence window automatically closes when a coincidence is found. That means the 3rd event here (Si DE backscatter) would trigger a new coincidence window to open because the 2nd event would have closed it. If a second particle now comes in and appears in E during the false coincidence window, we have a false coincidence.
         - This could potentially be solved by not closing the coincidence window automatically, but if the scattering occurs over a period longer than the coincidence window, this could still be a problem. As long as we pick a sufficiently long coincidence window, this would be resolved by leaving the window open longer.
+
+/////////////////////////////////////////////////////////////////////
+Update 4/3/24:
+/////////////////////////////////////////////////////////////////////
+
+- Both silicon and focal-plane coincidence logic has been updated and finished for the offline version where everything happens in the sort routine.
+- Still need to complete the online version, where the digitizer firmware handles coincidences automatically.
+  - Use a new git branch to work on the online version, and have this stored as a new version when complete.

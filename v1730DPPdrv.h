@@ -1,7 +1,7 @@
 /*********************************************************************
 
   Name:         v1730DPPdrv.h
-  Created by:   K.Olchanski, R. Longland
+  Created by:   K.Olchanski / R. Longland / W. Fox
 
   Contents:     v1730 8-channel 250 MHz 12-bit ADC
                 using DPP firmware

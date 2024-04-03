@@ -1,7 +1,7 @@
 /*********************************************************************
 
   Name:         v1730DPP.c
-  Created by:   Pierre-A. Amaudruz / K.Olchanski / R. Longland
+  Created by:   Pierre-A. Amaudruz / K.Olchanski / R. Longland / W. Fox
 
   Contents:     V1730 16 ch. 14bit 500Msps
                 Using DPP firmware

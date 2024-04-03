@@ -1,7 +1,7 @@
 /********************************************************************\
 
-  Name:         fev1730-DPP.cxx
-  Created by:   R. Longland
+  Name:         debug.cpp
+  Created by:   W. Fox
 
   Contents:     Frontend for VME DAQ using CAEN ADC, and V1730
                 (based on the generic frontend by K.Olcanski)
