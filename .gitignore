@@ -4,8 +4,11 @@
 # Unignore all with extensions
 !*.*
 
-# Unignore all directories
+# Unignore all (non-empty) directories
 !*/
+
+# Unignore build directories (even when empty)
+!*/build/
 
 # cmake generated files
 CMakeLists.txt.user
