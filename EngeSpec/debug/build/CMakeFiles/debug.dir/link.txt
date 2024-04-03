@@ -1,1 +1,1 @@
-/usr/bin/c++     CMakeFiles/debug.dir/debug.cpp.o  -o debug 
+/usr/bin/c++ CMakeFiles/debug.dir/debug.cpp.o -o debug 
