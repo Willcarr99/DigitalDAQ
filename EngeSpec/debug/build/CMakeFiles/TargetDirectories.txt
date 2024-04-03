@@ -1,3 +1,0 @@
-/home/wcfox/Projects/Physics/DigitalDAQ/EngeSpec/debug/build/CMakeFiles/debug.dir
-/home/wcfox/Projects/Physics/DigitalDAQ/EngeSpec/debug/build/CMakeFiles/edit_cache.dir
-/home/wcfox/Projects/Physics/DigitalDAQ/EngeSpec/debug/build/CMakeFiles/rebuild_cache.dir
