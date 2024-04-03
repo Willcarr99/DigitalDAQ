@@ -1,6 +1,13 @@
+# Ignore all
 *
+
+# Unignore all with extensions
 !*.*
+
+# Unignore all directories
 !*/
+
+# cmake generated files
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
