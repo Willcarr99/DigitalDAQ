@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <vector>
 #include "mvmestd.h"
 
 #ifdef __cplusplus
