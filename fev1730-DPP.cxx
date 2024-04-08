@@ -399,7 +399,7 @@ void v1730DPP_LoadSettings(){
   v1730DPP_setAggregateOrg(gVme, gV1730Base, 3);
   v1730DPP_setAggregateSizeG(gVme, gV1730Base, 1023);   // 1023 events per aggregate
   v1730DPP_setRecordLengthG(gVme, gV1730Base, 64);    // Don't collect waveforms
-  v1730DPP_setDynamicRangeG(gVme, gV1730Base, dRange);    //(0 = 2 Vpp)  (1 = 0.5 Vpp)
+  v1730DPP_setDynamicRangeG(gVme, gV1730Base, dRange[0]);    //(0 = 2 Vpp)  (1 = 0.5 Vpp)
   
   // Disable all channels
   for(int i=0; i<15; i++){
@@ -421,7 +421,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<cGain.size(); i++){
-      v1730DPP_setGain(gVme, gV1730Base, cGain[i], ch[i]);
+      v1730DPP_setGain(gVme, gV1730Base, cGain[i], enableCh[i]);
     }
   }
 
@@ -431,7 +431,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<inputSmoothing.size(); i++){
-      v1730DPP_setInputSmoothing(gVme, gV1730Base, inputSmoothing[i], ch[i]);
+      v1730DPP_setInputSmoothing(gVme, gV1730Base, inputSmoothing[i], enableCh[i]);
     }
   }
 
@@ -441,7 +441,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<negSignals.size(); i++){
-      v1730DPP_setPolarity(gVme, gV1730Base, negSignals[i], ch[i]);
+      v1730DPP_setPolarity(gVme, gV1730Base, negSignals[i], enableCh[i]);
     }
   }
 
@@ -451,7 +451,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<meanBaseline.size(); i++){
-      v1730DPP_setMeanBaselineCalc(gVme, gV1730Base, meanBaseline[i], ch[i]);
+      v1730DPP_setMeanBaselineCalc(gVme, gV1730Base, meanBaseline[i], enableCh[i]);
     }
   }
 
@@ -461,7 +461,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<fixedBaseline.size(); i++){
-      V1730DPP_setFixedBaseline(gVme, gV1730Base, fixedBaseline[i], ch[i]);
+      V1730DPP_setFixedBaseline(gVme, gV1730Base, fixedBaseline[i], enableCh[i]);
     }
   }
 
@@ -471,7 +471,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<restartBaseline.size(); i++){
-      v1730DPP_setBaselineCalcRestart(gVme, gV1730Base, restartBaseline[i], ch[i]);
+      v1730DPP_setBaselineCalcRestart(gVme, gV1730Base, restartBaseline[i], enableCh[i]);
     }
   }
 
@@ -481,7 +481,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<oppPol.size(); i++){
-      v1730DPP_setOppositePolarityDetection(gVme, gV1730Base, oppPol[i], ch[i]);
+      v1730DPP_setOppositePolarityDetection(gVme, gV1730Base, oppPol[i], enableCh[i]);
     }
   }
 
@@ -491,7 +491,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<chargeThresh.size(); i++){
-      v1730DPP_setChargeZeroSuppressionThreshold(gVme, gV1730Base, chargeThresh[i], ch[i]);
+      v1730DPP_setChargeZeroSuppressionThreshold(gVme, gV1730Base, chargeThresh[i], enableCh[i]);
     }
   }
 
@@ -501,17 +501,17 @@ void v1730DPP_LoadSettings(){
   }
   else if (cCFDDelay.size()==1 && cCFDFraction.size()>1){
     for(int i=0; i<cCFDFraction.size(); i++){
-      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[i], ch[i]);
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[i], enableCh[i]);
     }
   }
   else if (cCFDDelay.size()>1 && cCFDFraction.size()==1){
     for(int i=0; i<cCFDDelay.size(); i++){
-      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[0], ch[i]);
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[0], enableCh[i]);
     }
   }
   else if (cCFDDelay.size() == cCFDFraction.size()){
     for(int i=0; i<cCFDDelay.size(); i++){
-      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[i], ch[i]);
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[i], enableCh[i]);
     }
   }
   else{
@@ -524,7 +524,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<tlong.size(); i++){
-      v1730DPP_setLongGate(gVme, gV1730Base, tlong[i], ch[i]);
+      v1730DPP_setLongGate(gVme, gV1730Base, tlong[i], enableCh[i]);
     }
   }
 
@@ -534,7 +534,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<tshort.size(); i++){
-      v1730DPP_setShortGate(gVme, gV1730Base, tshort[i], ch[i]);
+      v1730DPP_setShortGate(gVme, gV1730Base, tshort[i], enableCh[i]);
     }
   }
 
@@ -544,7 +544,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<toffset.size(); i++){
-      v1730DPP_setGateOffset(gVme, gV1730Base, toffset[i], ch[i]);
+      v1730DPP_setGateOffset(gVme, gV1730Base, toffset[i], enableCh[i]);
     }
   }
 
@@ -554,7 +554,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<trigHoldOff.size(); i++){
-      v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], ch[i]);
+      v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], enableCh[i]);
     }
   }
 
@@ -564,7 +564,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<preTrig.size(); i++){
-      v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], ch[i]);
+      v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], enableCh[i]);
     }
   }
 
@@ -574,7 +574,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<cThresh.size(); i++){
-      v1730DPP_setThreshold(gVme, gV1730Base, cThresh[i], ch[i]);
+      v1730DPP_setThreshold(gVme, gV1730Base, cThresh[i], enableCh[i]);
     }
   }
 
@@ -584,7 +584,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<offset.size(); i++){
-      v1730DPP_setDCOffset(gVme, gV1730Base, offset[i], ch[i]);
+      v1730DPP_setDCOffset(gVme, gV1730Base, offset[i], enableCh[i]);
     }
   }
 
@@ -594,7 +594,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<discrimMode.size(); i++){
-      v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], ch[i]);
+      v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], enableCh[i]);
     }
   }
 
@@ -604,7 +604,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<trigCountMode.size(); i++){
-      v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], ch[i]);
+      v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], enableCh[i]);
     }
   }
 
@@ -614,7 +614,7 @@ void v1730DPP_LoadSettings(){
   }
   else {
     for(int i=0; i<trigPileUp.size(); i++){
-      v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], ch[i]);
+      v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], enableCh[i]);
     }
   }
 }
