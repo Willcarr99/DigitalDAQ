@@ -384,6 +384,15 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
   printf("\n--------------------------------------------------\n");
   
+  // Is the digitizer working?
+  v1730DPP_getFirmwareRev(gVme, gV1730Base);
+
+  // Reset the module
+  printf("Reset module\n");
+  v1730DPP_SoftReset(gVme, gV1730Base);
+  
+  sleep(1);
+
   // General setup
   v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8000, 0x800C0110); // 0x800C0110 - Board Config
   //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control
@@ -654,17 +663,6 @@ INT init_vme_modules()
   uint32_t status;
 
   v1730DPP_LoadSettings();
-
-  // Is the digitizer working?
-  v1730DPP_getFirmwareRev(gVme, gV1730Base);
-
-  // Reset the module
-  printf("Reset module\n");
-  v1730DPP_SoftReset(gVme, gV1730Base);
-  
-  sleep(1);
-
-  v1730DPP_ApplySettings();
   
   // Make sure the acquisition is stopped
   v1730DPP_AcqCtl(gVme, gV1730Base, V1730DPP_ACQ_STOP);
