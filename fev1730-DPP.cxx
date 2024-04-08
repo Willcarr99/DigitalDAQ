@@ -76,7 +76,6 @@ using namespace std;
   void AllDataClear();
 
   void v1730DPP_LoadSettings();
-  void v1730DPP_ApplySettings();
   vector<uint32_t> v1730DPP_str_to_uint32t(string str);
   void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0);
 /*-- Bank definitions ----------------------------------------------*/
@@ -384,9 +383,6 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
   printf("\n--------------------------------------------------\n");
-}
-
-void v1730DPP_ApplySettings(){
   
   // General setup
   v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8000, 0x800C0110); // 0x800C0110 - Board Config
