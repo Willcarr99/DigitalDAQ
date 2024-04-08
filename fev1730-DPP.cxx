@@ -19,6 +19,8 @@ $Id$
 #include <fstream>
 #include <sys/time.h>
 #include <assert.h>
+#include <vector>
+#include <sstream>
 #include "midas.h"
 #include "mfe.h"
 #include "mvmestd.h"
@@ -72,6 +74,11 @@ using namespace std;
   INT read_event(char* pevent, INT off);
 
   void AllDataClear();
+
+  void v1730DPP_LoadSettings();
+  void v1730DPP_ApplySettings();
+  vector<uint32_t> v1730DPP_str_to_uint32t(string str);
+  void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0);
 /*-- Bank definitions ----------------------------------------------*/
 
 /*-- Equipment list ------------------------------------------------*/
@@ -194,7 +201,8 @@ int enable_trigger()
   return 0;
 }
 
-void AllDataClear(){
+void AllDataClear()
+{
 
   // Clear the ADC
 #ifdef HAVE_V792
@@ -221,6 +229,389 @@ int disable_trigger()
 #endif
 
   return 0;
+}
+
+vector<uint32_t> v1730DPP_str_to_uint32t(string str)
+{
+  vector<uint32_t> vec;
+  stringstream ss(str);
+  while (ss.good()){
+    string substr;
+    getline(ss, substr, ',');
+    vec.push_back(static_cast<uint32_t>(stoul(substr)));
+  }
+  return vec;
+}
+
+void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch, int mode)
+{
+  cout << str << " = ";
+  for(int i=0; i<v.size(); i++){
+    cout << v[i];
+    if (mode==0 && v.size()>1){
+      cout << " (Ch " << ch[i] << ")";
+    }
+    //else if (mode==0 && v.size()==1){
+    //  cout << " (All)";
+    //}
+    if (v.size()>1 && i<v.size()-1){
+      cout << ", ";
+    }
+  }
+  cout << "" << endl;
+}
+
+void v1730DPP_LoadSettings(){
+  
+  string enableCh_str, tlong_str, tshort_str, toffset_str, trigHoldOff_str, preTrig_str;
+  string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
+  string trigCountMode_str, trigPileUp_str, oppPol_str, restartBaseline_str, offset_str;
+  string cGain_str, cThresh_str, cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str;
+
+  vector<uint32_t> enableCh, tlong, tshort, toffset, trigHoldOff, preTrig, inputSmoothing, meanBaseline;
+  vector<uint32_t> negSignals, dRange, discrimMode, trigCountMode, trigPileUp, oppPol, restartBaseline;
+  vector<uint32_t> offset, cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh;
+
+  ifstream f("settings-DPP.dat");
+  if (!f){
+    // Print an error and exit
+    cerr << "ERROR! settings-DPP.dat could not be opened" << endl;
+    exit(1);
+  }
+  
+  printf("Reading settings-DPP.dat...\n\n");
+
+  // Skip header lines
+  for(int i=0;i<15;i++){f.ignore(200,'\n');}
+
+  // Assign strings
+  f >> enableCh_str;
+  f.ignore(200,'\n');
+  f >> tlong_str;
+  f.ignore(200,'\n');
+  f >> tshort_str;
+  f.ignore(200,'\n');
+  f >> toffset_str;
+  f.ignore(200,'\n');
+  f >> trigHoldOff_str;
+  f.ignore(200,'\n');
+  f >> preTrig_str;
+  f.ignore(200,'\n');
+  f >> cGain_str;
+  f.ignore(200,'\n');
+  f >> negSignals_str;
+  f.ignore(200,'\n');
+  f >> offset_str;
+  f.ignore(200,'\n');
+  f >> cThresh_str;
+  f.ignore(200,'\n');
+  f >> cCFDDelay_str;
+  f.ignore(200,'\n');
+  f >> cCFDFraction_str;
+  f.ignore(200,'\n');
+  
+  f.ignore(200,'\n');
+  f >> dRange_str;
+  f.ignore(200,'\n');
+  f >> inputSmoothing_str;
+  f.ignore(200,'\n');
+  f >> meanBaseline_str;
+  f.ignore(200,'\n');
+  f >> fixedBaseline_str;
+  f.ignore(200,'\n');
+  f >> restartBaseline_str;
+  f.ignore(200,'\n');
+  f >> discrimMode_str;
+  f.ignore(200,'\n');
+  f >> trigCountMode_str;
+  f.ignore(200,'\n');
+  f >> trigPileUp_str;
+  f.ignore(200,'\n');
+  f >> oppPol_str;
+  f.ignore(200,'\n');
+  f >> chargeThresh_str;
+
+  f.close();
+
+  // Convert strings to 32-bit integers
+  enableCh = v1730DPP_str_to_uint32t(enableCh_str);
+  tlong = v1730DPP_str_to_uint32t(tlong_str);
+  tshort = v1730DPP_str_to_uint32t(tshort_str);
+  toffset = v1730DPP_str_to_uint32t(toffset_str);
+  trigHoldOff = v1730DPP_str_to_uint32t(trigHoldOff_str);
+  preTrig = v1730DPP_str_to_uint32t(preTrig_str);
+  cGain = v1730DPP_str_to_uint32t(cGain_str);
+  negSignals = v1730DPP_str_to_uint32t(negSignals_str);
+  offset = v1730DPP_str_to_uint32t(offset_str);
+  cThresh = v1730DPP_str_to_uint32t(cThresh_str);
+  cCFDDelay = v1730DPP_str_to_uint32t(cCFDDelay_str);
+  cCFDFraction = v1730DPP_str_to_uint32t(cCFDFraction_str);
+  dRange = v1730DPP_str_to_uint32t(dRange_str);
+  inputSmoothing = v1730DPP_str_to_uint32t(inputSmoothing_str);
+  meanBaseline = v1730DPP_str_to_uint32t(meanBaseline_str);
+  fixedBaseline = v1730DPP_str_to_uint32t(fixedBaseline_str);
+  restartBaseline = v1730DPP_str_to_uint32t(restartBaseline_str);
+  discrimMode = v1730DPP_str_to_uint32t(discrimMode_str);
+  trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
+  trigPileUp = v1730DPP_str_to_uint32t(trigPileUp_str);
+  oppPol = v1730DPP_str_to_uint32t(oppPol_str);
+  chargeThresh = v1730DPP_str_to_uint32t(chargeThresh_str);
+
+  printf("DPP Settings:\n");
+  printf("--------------------------------------------------\n\n");
+
+  // Print settings
+  v1730DPP_PrintSettings(enableCh, "Channels Enabled", enableCh, 1);
+  v1730DPP_PrintSettings(tlong, "Long gate", enableCh);
+  v1730DPP_PrintSettings(tshort, "Short gate", enableCh);
+  v1730DPP_PrintSettings(toffset, "Gate offset", enableCh);
+  v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
+  v1730DPP_PrintSettings(preTrig, "Pre-Trigger", enableCh);
+  v1730DPP_PrintSettings(cGain, "Gain", enableCh);
+  v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
+  v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
+  v1730DPP_PrintSettings(cThresh, "Threshold", enableCh);
+  v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
+  v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
+  v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
+  v1730DPP_PrintSettings(inputSmoothing, "Input Smoothing", enableCh);
+  v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
+  v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
+  v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
+  v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
+  v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
+  v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
+  v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
+  v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
+  printf("\n--------------------------------------------------\n");
+}
+
+void v1730DPP_ApplySettings(){
+  
+  // General setup
+  v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8000, 0x800C0110); // 0x800C0110 - Board Config
+  //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control
+  v1730DPP_setAggregateOrg(gVme, gV1730Base, 3);
+  v1730DPP_setAggregateSizeG(gVme, gV1730Base, 1023);   // 1023 events per aggregate
+  v1730DPP_setRecordLengthG(gVme, gV1730Base, 64);    // Don't collect waveforms
+  v1730DPP_setDynamicRangeG(gVme, gV1730Base, dRange);    //(0 = 2 Vpp)  (1 = 0.5 Vpp)
+  
+  // Disable all channels
+  for(int i=0; i<15; i++){
+    v1730DPP_DisableChannel(gVme, gV1730Base, i);
+  }
+
+  // Enable channels specified in settings
+  for(int i=0; i<enableCh.size(); i++){
+    v1730DPP_EnableChannel(gVme, gV1730Base, enableCh[i]);
+  }
+
+  // *****************************************************
+  // Apply settings
+  // *****************************************************
+
+  // Gain
+  if (cGain.size()==1){
+    v1730DPP_setGainG(gVme, gV1730Base, cGain[0]);
+  }
+  else {
+    for(int i=0; i<cGain.size(); i++){
+      v1730DPP_setGain(gVme, gV1730Base, cGain[i], ch[i]);
+    }
+  }
+
+  // Input Smoothing
+  if (inputSmoothing.size()==1){
+    v1730DPP_setInputSmoothingG(gVme, gV1730Base, inputSmoothing[0]);
+  }
+  else {
+    for(int i=0; i<inputSmoothing.size(); i++){
+      v1730DPP_setInputSmoothing(gVme, gV1730Base, inputSmoothing[i], ch[i]);
+    }
+  }
+
+  // Polarity
+  if (negSignals.size()==1){
+    v1730DPP_setPolarityG(gVme, gV1730Base, negSignals[0]);
+  }
+  else {
+    for(int i=0; i<negSignals.size(); i++){
+      v1730DPP_setPolarity(gVme, gV1730Base, negSignals[i], ch[i]);
+    }
+  }
+
+  // Mean Baseline Calculation
+  if (meanBaseline.size()==1){
+    v1730DPP_setMeanBaselineCalcG(gVme, gV1730Base, meanBaseline[0]);
+  }
+  else {
+    for(int i=0; i<meanBaseline.size(); i++){
+      v1730DPP_setMeanBaselineCalc(gVme, gV1730Base, meanBaseline[i], ch[i]);
+    }
+  }
+
+  // Fixed Baseline
+  if (fixedBaseline.size()==1){
+    V1730DPP_setFixedBaselineG(gVme, gV1730Base, fixedBaseline[0]);
+  }
+  else {
+    for(int i=0; i<fixedBaseline.size(); i++){
+      V1730DPP_setFixedBaseline(gVme, gV1730Base, fixedBaseline[i], ch[i]);
+    }
+  }
+
+  // Baseline Calculation Restart
+  if (restartBaseline.size()==1){
+    v1730DPP_setBaselineCalcRestartG(gVme, gV1730Base, restartBaseline[0]);
+  }
+  else {
+    for(int i=0; i<restartBaseline.size(); i++){
+      v1730DPP_setBaselineCalcRestart(gVme, gV1730Base, restartBaseline[i], ch[i]);
+    }
+  }
+
+  // Opposite Polarity Detection
+  if (oppPol.size()==1){
+    v1730DPP_setOppositePolarityDetectionG(gVme, gV1730Base, oppPol[0]);
+  }
+  else {
+    for(int i=0; i<oppPol.size(); i++){
+      v1730DPP_setOppositePolarityDetection(gVme, gV1730Base, oppPol[i], ch[i]);
+    }
+  }
+
+  // Charge Zero Suppression Threshold
+  if (chargeThresh.size()==1){
+    v1730DPP_setChargeZeroSuppressionThresholdG(gVme, gV1730Base, chargeThresh[0]);
+  }
+  else {
+    for(int i=0; i<chargeThresh.size(); i++){
+      v1730DPP_setChargeZeroSuppressionThreshold(gVme, gV1730Base, chargeThresh[i], ch[i]);
+    }
+  }
+
+  // CFD Delay and Fraction
+  if (cCFDDelay.size()==1 && cCFDFraction.size()==1){
+    v1730DPP_setCFDG(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[0]);
+  }
+  else if (cCFDDelay.size()==1 && cCFDFraction.size()>1){
+    for(int i=0; i<cCFDFraction.size(); i++){
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[i], ch[i]);
+    }
+  }
+  else if (cCFDDelay.size()>1 && cCFDFraction.size()==1){
+    for(int i=0; i<cCFDDelay.size(); i++){
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[0], ch[i]);
+    }
+  }
+  else if (cCFDDelay.size() == cCFDFraction.size()){
+    for(int i=0; i<cCFDDelay.size(); i++){
+      v1730DPP_setCFD(gVme, gV1730Base, cCFDDelay[i], cCFDFraction[i], ch[i]);
+    }
+  }
+  else{
+    cout << "Error: CFD Delay and Fraction settings cannot be applied" << endl;
+  }
+
+  // Long Gate
+  if (tlong.size()==1){
+    v1730DPP_setLongGateG(gVme, gV1730Base, tlong[0]);
+  }
+  else {
+    for(int i=0; i<tlong.size(); i++){
+      v1730DPP_setLongGate(gVme, gV1730Base, tlong[i], ch[i]);
+    }
+  }
+
+  // Short Gate
+  if (tshort.size()==1){
+    v1730DPP_setShortGateG(gVme, gV1730Base, tshort[0]);
+  }
+  else {
+    for(int i=0; i<tshort.size(); i++){
+      v1730DPP_setShortGate(gVme, gV1730Base, tshort[i], ch[i]);
+    }
+  }
+
+  // Gate Offset
+  if (toffset.size()==1){
+    v1730DPP_setGateOffsetG(gVme, gV1730Base, toffset[0]);
+  }
+  else {
+    for(int i=0; i<toffset.size(); i++){
+      v1730DPP_setGateOffset(gVme, gV1730Base, toffset[i], ch[i]);
+    }
+  }
+
+  // Trigger Holdoff Width
+  if (trigHoldOff.size()==1){
+    v1730DPP_setTriggerHoldoffG(gVme, gV1730Base, trigHoldOff[0]);
+  }
+  else {
+    for(int i=0; i<trigHoldOff.size(); i++){
+      v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], ch[i]);
+    }
+  }
+
+  // Pre Trigger Width
+  if (preTrig.size()==1){
+    v1730DPP_setPreTriggerG(gVme, gV1730Base, preTrig[0]);
+  }
+  else {
+    for(int i=0; i<preTrig.size(); i++){
+      v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], ch[i]);
+    }
+  }
+
+  // Threshold
+  if (cThresh.size()==1){
+    v1730DPP_setThresholdG(gVme, gV1730Base, cThresh[0]);
+  }
+  else {
+    for(int i=0; i<cThresh.size(); i++){
+      v1730DPP_setThreshold(gVme, gV1730Base, cThresh[i], ch[i]);
+    }
+  }
+
+  // DC Offset
+  if (offset.size()==1){
+    v1730DPP_setDCOffsetG(gVme, gV1730Base, offset[0]);
+  }
+  else {
+    for(int i=0; i<offset.size(); i++){
+      v1730DPP_setDCOffset(gVme, gV1730Base, offset[i], ch[i]);
+    }
+  }
+
+  // Discrimination Mode (LED or CFD)
+  if (discrimMode.size()==1){
+    v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);
+  }
+  else {
+    for(int i=0; i<discrimMode.size(); i++){
+      v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], ch[i]);
+    }
+  }
+
+  // Trigger Counting Mode (Accepted Self-Triggers Only or All Self-Triggers)
+  if (trigCountMode.size()==1){
+    v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);
+  }
+  else {
+    for(int i=0; i<trigCountMode.size(); i++){
+      v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], ch[i]);
+    }
+  }
+
+  // Trigger Pile-Up
+  if (trigPileUp.size()==1){
+    v1730DPP_setTriggerPileupG(gVme, gV1730Base, trigPileUp[0]);
+  }
+  else {
+    for(int i=0; i<trigPileUp.size(); i++){
+      v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], ch[i]);
+    }
+  }
 }
 
 INT init_vme_modules()
@@ -266,7 +657,18 @@ INT init_vme_modules()
 
   uint32_t status;
 
-  v1730DPP_ReadAndApplySettings(gVme, gV1730Base);
+  v1730DPP_LoadSettings();
+
+  // Is the digitizer working?
+  v1730DPP_getFirmwareRev(gVme, gV1730Base);
+
+  // Reset the module
+  printf("Reset module\n");
+  v1730DPP_SoftReset(gVme, gV1730Base);
+  
+  sleep(1);
+
+  v1730DPP_ApplySettings();
   
   // Make sure the acquisition is stopped
   v1730DPP_AcqCtl(gVme, gV1730Base, V1730DPP_ACQ_STOP);
@@ -274,7 +676,7 @@ INT init_vme_modules()
   // Clear the data
   v1730DPP_SoftClear(gVme, gV1730Base);
 
-  // Get the board config
+  // Get the board and algorithm configs
   printf("Board config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x8000));
   printf("DPP Algorithm 1 config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1080));
   printf("DPP Algorithm 2 config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1084));

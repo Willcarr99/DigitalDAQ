@@ -21,11 +21,11 @@ $Id$
 //#include <assert.h>
 
 #include <vector>
-#include <bits/stdc++.h>
+#include <sstream>
 
 using namespace std;
 
-void v1730DPP_ReadAndApplySettings();
+void v1730DPP_LoadSettings();
 vector<uint32_t> v1730DPP_str_to_uint32t(string str);
 void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0);
 
@@ -57,7 +57,7 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
   cout << "" << endl;
 }
 
-void v1730DPP_ReadAndApplySettings(){
+void v1730DPP_LoadSettings(){
   
   string enableCh_str, tlong_str, tshort_str, toffset_str, trigHoldOff_str, preTrig_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
@@ -176,7 +176,6 @@ void v1730DPP_ReadAndApplySettings(){
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
   std::cout << std::endl << "--------------------------------------------------" << std::endl;
-
 }
 
 int main(){
@@ -185,7 +184,7 @@ int main(){
   printf("--------- CAEN V1730 Digitizer DPP mode ----------\n");
   printf("\n");
 
-  v1730DPP_ReadAndApplySettings();
+  v1730DPP_LoadSettings();
 
   // Get the board config
   // printf("Board config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x8000));

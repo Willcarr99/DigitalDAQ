@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <vector>
 #include "mvmestd.h"
 
 #ifdef __cplusplus
@@ -99,8 +100,6 @@ extern "C" {
   
   void v1730DPP_getChannelStatus(MVME_INTERFACE *mvme, uint32_t base, int channel);
   void v1730DPP_getFirmwareRev(MVME_INTERFACE *mvme, uint32_t base);
-  
-  void v1730DPP_ReadAndApplySettings(MVME_INTERFACE *mvme, uint32_t base);
 
   void v1730DPP_SoftwareTrigger(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_ForceDataFlush(MVME_INTERFACE *mvme, uint32_t base);
