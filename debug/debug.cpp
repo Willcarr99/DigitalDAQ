@@ -13,7 +13,7 @@ $Id$
 //#include <errno.h>
 //#include <unistd.h>
 #include <string.h>
-//#include <stdlib.h>
+#include <stdlib.h>
 //#include <stdint.h>
 #include <iostream>
 #include <fstream>
@@ -32,10 +32,12 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch
 vector<uint32_t> v1730DPP_str_to_uint32t(string str){
   vector<uint32_t> vec;
   stringstream ss(str);
+  char* end = nullptr;
   while (ss.good()){
     string substr;
     getline(ss, substr, ',');
-    vec.push_back(static_cast<uint32_t>(stoul(substr)));
+    //vec.push_back(static_cast<uint32_t>(stoul(substr))); // std::stoul introduced in C++11
+    vec.push_back(static_cast<uint32_t>(strtoul(&substr[0], &end, 10))); // std::strtoul in C standard library <stdlib.h>
   }
   return vec;
 }
