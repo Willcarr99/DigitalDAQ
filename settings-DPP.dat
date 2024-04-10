@@ -31,11 +31,11 @@
 3          ## Mean Baseline Calc | 0 = fixed baseline, 1,2,3,4 = use 16,64,256,1024 samples, respectively
 0          ## Fixed Baseline | in mV, 0 = disabled, Mean Baseline Calc must be 0 if enabled
 0          ## Baseline Calc Restart | 0 = after trigger hold-off (default), 1 = after long gate
-0          ## Trigger Counting | 0 = only accepted (real) self-triggers (default), 1 = all self-triggers
 0          ## Pile Up Counted as a Trigger | 0 = disabled (default), 1 = enabled
 0          ## Detect Signals with Opposite Polarity | 0 = enabled (default), 1 = disabled
 0          ## Charge Zero Suppression Threshold | in LSB, 0 = disabled (default), cuts Q_Long < Q_thresh
 
 0          ## Trigger Mode | 0 = Normal (Default), 1 = Coincidence, 2 = Anti-Coincidence (Not available)
 0          ## Trigger Propagation | Single value, 0 = disabled (default), 1 = enabled (required for coincidences)
+0          ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
 0          ## Shaped Trigger (i.e. Coincidence Window) Width | ns, multiple of 8, max 8176 ns, 0 = Normal mode

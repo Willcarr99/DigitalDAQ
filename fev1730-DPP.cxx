@@ -272,14 +272,14 @@ void v1730DPP_LoadSettings(){
   
   string enableCh_str, tlong_str, tshort_str, toffset_str, trigHoldOff_str, preTrig_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
-  string trigCountMode_str, trigPileUp_str, oppPol_str, restartBaseline_str, offset_str;
+  string trigPileUp_str, oppPol_str, restartBaseline_str, offset_str;
   string cGain_str, cThresh_str, cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str;
-  string trigMode_str, enableTrigProp_str, shapedTrig_str;
+  string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str;
 
   vector<uint32_t> enableCh, tlong, tshort, toffset, trigHoldOff, preTrig, inputSmoothing, meanBaseline;
-  vector<uint32_t> negSignals, dRange, discrimMode, trigCountMode, trigPileUp, oppPol, restartBaseline;
+  vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline;
   vector<uint32_t> offset, cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh;
-  vector<uint32_t> trigMode, enableTrigProp, shapedTrig;
+  vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig;
 
   ifstream f("settings-DPP.dat");
   if (!f){
@@ -332,8 +332,6 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> restartBaseline_str;
   f.ignore(200,'\n');
-  f >> trigCountMode_str;
-  f.ignore(200,'\n');
   f >> trigPileUp_str;
   f.ignore(200,'\n');
   f >> oppPol_str;
@@ -345,6 +343,8 @@ void v1730DPP_LoadSettings(){
   f >> trigMode_str;
   f.ignore(200,'\n');
   f >> enableTrigProp_str;
+  f.ignore(200,'\n');
+  f >> trigCountMode_str;
   f.ignore(200,'\n');
   f >> shapedTrig_str;
 
@@ -369,13 +369,13 @@ void v1730DPP_LoadSettings(){
   meanBaseline = v1730DPP_str_to_uint32t(meanBaseline_str);
   fixedBaseline = v1730DPP_str_to_uint32t(fixedBaseline_str);
   restartBaseline = v1730DPP_str_to_uint32t(restartBaseline_str);
-  trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
   trigPileUp = v1730DPP_str_to_uint32t(trigPileUp_str);
   oppPol = v1730DPP_str_to_uint32t(oppPol_str);
   chargeThresh = v1730DPP_str_to_uint32t(chargeThresh_str);
 
   trigMode = v1730DPP_str_to_uint32t(trigMode_str);
   enableTrigProp = v1730DPP_str_to_uint32t(enableTrigProp_str);
+  trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
   shapedTrig = v1730DPP_str_to_uint32t(shapedTrig_str);
 
   printf("DPP Settings:\n");
@@ -400,13 +400,13 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
   v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
   v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
-  v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
   v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
 
   v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
   v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 2);
+  v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
   v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
   printf("\n--------------------------------------------------\n");
   
@@ -420,8 +420,8 @@ void v1730DPP_LoadSettings(){
   sleep(1);
 
   // General setup
-  v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8000, 0x800C0110); // 0x800C0110 - Board Config
-  //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control
+  v1730DPP_RegisterWrite(gVme, gV1730Base, V1730DPP_BOARD_CONFIG, 0x800C0110); // 0x800C0110
+  //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control 2
   v1730DPP_setAggregateOrg(gVme, gV1730Base, 3);
   v1730DPP_setAggregateSizeG(gVme, gV1730Base, 1023);   // 1023 events per aggregate
   v1730DPP_setRecordLengthG(gVme, gV1730Base, 64);    // Don't collect waveforms
@@ -624,16 +624,6 @@ void v1730DPP_LoadSettings(){
     }
   }
 
-  // Trigger Counting Mode (Accepted Self-Triggers Only or All Self-Triggers)
-  if (trigCountMode.size()==1){
-    v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);
-  }
-  else {
-    for(int i=0; i<trigCountMode.size(); i++){
-      v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], enableCh[i]);
-    }
-  }
-
   // Trigger Pile-Up
   if (trigPileUp.size()==1){
     v1730DPP_setTriggerPileupG(gVme, gV1730Base, trigPileUp[0]);
@@ -661,6 +651,16 @@ void v1730DPP_LoadSettings(){
   // Enable Trigger Propagation from Motherboard to Mezzanine (all channels)
    if (enableTrigProp.size()==1){
     v1730DPP_setTriggerPropagation(gVme, gV1730Base, enableTrigProp[0]);
+  }
+
+  // Trigger Counting Mode
+  if (trigCountMode.size()==1){
+    v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);
+  }
+  else {
+    for(int i=0; i<trigCountMode.size(); i++){
+      v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], enableCh[i]);
+    }
   }
 
   // Shaped Trigger Width (Coincidence Window Width)

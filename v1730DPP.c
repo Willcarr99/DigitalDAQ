@@ -791,49 +791,6 @@ void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_
   regWrite(mvme, base, reg, value);
 }
 /*****************************************************************/
-void v1730DPP_setTriggerCountingModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
-{
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (accepted self-triggers) or 1 (all self-triggers)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Trigger counting mode for all channels set to only accepted self-triggers\n"); break;
-        case 1:
-            printf("Trigger counting mode for all channels set to all self-triggers\n"); break;
-    }
-    
-  // Read the current algorithm control register, then add this new trigger counting mode
-  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
-  value = value | mode << 5;
-  
-  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
-}
-/*****************************************************************/
-void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
-{
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (accepted self-triggers) or 1 (all self-triggers)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Trigger counting mode for channel %d set to only accepted self-triggers\n", channel); break;
-        case 1:
-            printf("Trigger counting mode for channel %d set to all self-triggers\n", channel); break;
-    }
-    
-  // Channel mask
-  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
-    
-  // Read the current algorithm control register, then add this new trigger counting mode
-  uint32_t value = regRead(mvme, base, reg);
-  value = value | mode << 5;
-  
-  regWrite(mvme, base, reg, value);
-}
-/*****************************************************************/
 void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
     
@@ -1324,6 +1281,49 @@ void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t
   value = value | mode << 2;
   
   regWrite(mvme, base, V1730DPP_BOARD_CONFIG, value);
+}
+/*****************************************************************/
+void v1730DPP_setTriggerCountingModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+    
+    if ((mode > 1) | (mode < 0)){
+      printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
+    }
+    switch(mode){
+        case 0:
+            printf("Trigger counting mode for all channels set to trigger from only accepted events\n"); break;
+        case 1:
+            printf("Trigger counting mode for all channels set to trigger from all (even rejected) events\n"); break;
+    }
+    
+  // Read the current algorithm control register, then add this new trigger counting mode
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | mode << 5;
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
+}
+/*****************************************************************/
+void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+    
+    if ((mode > 1) | (mode < 0)){
+      printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
+    }
+    switch(mode){
+        case 0:
+            printf("Trigger counting mode for channel %d set to trigger from only accepted events\n", channel); break;
+        case 1:
+            printf("Trigger counting mode for channel %d set to trigger from all (even rejected) events\n", channel); break;
+    }
+    
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+    
+  // Read the current algorithm control register, then add this new trigger counting mode
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | mode << 5;
+  
+  regWrite(mvme, base, reg, value);
 }
 /**********************************************************************/
 void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t width){
