@@ -1242,7 +1242,116 @@ void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, int32_t base, u
   regWrite(mvme, base, reg, value);
     
 }
-    
+/**********************************************************************/
+void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode){
+
+  if((mode > 1) | (mode < 0)){
+    printf("ERROR: Trigger mode must be 0 (Normal) or 1 (Coincidence)\n");
+    return;
+  }
+  switch(mode){
+    case 0:
+      printf("Normal Mode enabled: Each channel can self-trigger independently\n"); break;
+    case 1:
+      printf("Coincidence Mode enabled: Each channel saves the event only when it occurs inside the shaped trigger width\n"); break;
+  }
+
+  uint32_t bin;
+  switch(mode){
+    case 0:
+      bin = 0x0; break; // Normal
+    case 1:
+      bin = 0x1; break; // Coincidence
+    //case 2:
+      //bin = 0x3; break; // Anticoincidence, 0x2 is reserved
+  }
+
+  // Read the current algorithm control register, then add this new trigger mode
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | (bin << 18);
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
+}
+/**********************************************************************/
+void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel){
+
+  if((mode > 1) | (mode < 0)){
+    printf("ERROR: Trigger mode must be 0 (Normal) or 1 (Coincidence)\n");
+    return;
+  }
+  switch(mode){
+    case 0:
+      printf("Normal Mode enabled for channel %d: Channel %d can self-trigger independently\n"); break;
+    case 1:
+      printf("Coincidence Mode enabled for channel %d: Channel %d saves the event only when it occurs inside the shaped trigger width\n"); break;
+  }
+
+  uint32_t bin;
+  switch(mode){
+    case 0:
+      bin = 0x0; break; // Normal
+    case 1:
+      bin = 0x1; break; // Coincidence
+    //case 2:
+      //bin = 0x3; break; // Anticoincidence, 0x2 is reserved
+  }
+
+  // Channel Mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+
+  // Read the current algorithm control register, then add this new trigger mode
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | (bin << 18);
+  
+  regWrite(mvme, base, reg, value);
+}
+/**********************************************************************/
+void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t mode){
+
+  if((mode > 1) | (mode < 0)){
+    printf("ERROR: Trigger propagation must be 0 (disabled) or 1 (enabled)\n");
+    return;
+  }
+  switch(mode){
+    case 0:
+      printf("Trigger propagation disabled for all channels\n"); break;
+    case 1:
+      printf("Trigger propagation enabled for all channels\n"); break;
+  }
+
+  // Read the current board config register, then add this new trigger propagation mode
+  uint32_t value = regRead(mvme, base, V1730DPP_BOARD_CONFIG);
+  value = value | mode << 2;
+  
+  regWrite(mvme, base, V1730DPP_BOARD_CONFIG, value);
+}
+/**********************************************************************/
+void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t width){
+
+  if(width > 8176){
+    printf("ERROR: Shaped trigger width must be less than 8176 ns\n");
+    return;
+  }
+
+  uint32_t w = (width/8) & 0x3FF;
+
+  regWrite(mvme, base, V1730DPP_SHAPED_TRIGGER_WIDTH_G, w);
+}
+/**********************************************************************/
+void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, int32_t base, uint32_t width, int channel){
+
+  if(width > 8176){
+    printf("ERROR: Shaped trigger width must be less than 8176 ns\n");
+    return;
+  }
+
+  uint32_t w = (width/8) & 0x3FF;
+
+  // Channel mask
+  uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (channel << 8);
+
+  regWrite(mvme, base, reg, w);
+}
 /**********************************************************************/
 void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base){
      

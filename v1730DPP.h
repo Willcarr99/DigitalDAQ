@@ -45,6 +45,10 @@
 #define V1730DPP_FIXED_BASELINE_G                0x8064      /* R/W       ; D32 */
 #define V1730DPP_FIXED_BASELINE                  0x1064      /* R/W       ; D32 */
 
+#define V1730DPP_SHAPED_TRIGGER_WIDTH_G          0x8070      /* R/W       ; D32 */
+#define V1730DPP_SHAPED_TRIGGER_WIDTH            0x1070      /* R/W       ; D32 */
+
+#define V1730DPP_BOARD_CONFIG                    0x8000      /* R/W       ; D32 */
 #define V1730DPP_ALGORITHM_CONTROL_G             0x8080      /* R/W       ; D32 */
 #define V1730DPP_ALGORITHM_CONTROL               0x1080      /* R/W       ; D32 */
 #define V1730DPP_ALGORITHM_CONTROL2_G            0x8084      /* R/W       ; D32 */

@@ -85,6 +85,12 @@ extern "C" {
   void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
   void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel);
 
+  void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
+  void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel);
+  void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
+  void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t width);
+  void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, int32_t base, uint32_t width, int channel);
+
   void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel);

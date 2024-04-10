@@ -256,7 +256,13 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
     //  cout << " (All)";
     //}
     if (v.size()>1 && i<v.size()-1){
-      cout << ", ";
+      if (mode==2){
+        cout << "\nERROR: Setting must be applied to all channels. Use a single value." << endl;
+        return;
+      }
+      else{
+        cout << ", ";
+      }
     }
   }
   cout << "" << endl;
@@ -268,10 +274,12 @@ void v1730DPP_LoadSettings(){
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
   string trigCountMode_str, trigPileUp_str, oppPol_str, restartBaseline_str, offset_str;
   string cGain_str, cThresh_str, cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str;
+  string trigMode_str, enableTrigProp_str, shapedTrig_str;
 
   vector<uint32_t> enableCh, tlong, tshort, toffset, trigHoldOff, preTrig, inputSmoothing, meanBaseline;
   vector<uint32_t> negSignals, dRange, discrimMode, trigCountMode, trigPileUp, oppPol, restartBaseline;
   vector<uint32_t> offset, cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh;
+  vector<uint32_t> trigMode, enableTrigProp, shapedTrig;
 
   ifstream f("settings-DPP.dat");
   if (!f){
@@ -283,7 +291,7 @@ void v1730DPP_LoadSettings(){
   printf("Reading settings-DPP.dat...\n\n");
 
   // Skip header lines
-  for(int i=0;i<15;i++){f.ignore(200,'\n');}
+  for(int i=0;i<14;i++){f.ignore(200,'\n');}
 
   // Assign strings
   f >> enableCh_str;
@@ -306,6 +314,8 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> cThresh_str;
   f.ignore(200,'\n');
+  f >> discrimMode_str;
+  f.ignore(200,'\n');
   f >> cCFDDelay_str;
   f.ignore(200,'\n');
   f >> cCFDFraction_str;
@@ -322,8 +332,6 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> restartBaseline_str;
   f.ignore(200,'\n');
-  f >> discrimMode_str;
-  f.ignore(200,'\n');
   f >> trigCountMode_str;
   f.ignore(200,'\n');
   f >> trigPileUp_str;
@@ -331,6 +339,14 @@ void v1730DPP_LoadSettings(){
   f >> oppPol_str;
   f.ignore(200,'\n');
   f >> chargeThresh_str;
+  f.ignore(200,'\n');
+
+  f.ignore(200,'\n');
+  f >> trigMode_str;
+  f.ignore(200,'\n');
+  f >> enableTrigProp_str;
+  f.ignore(200,'\n');
+  f >> shapedTrig_str;
 
   f.close();
 
@@ -345,6 +361,7 @@ void v1730DPP_LoadSettings(){
   negSignals = v1730DPP_str_to_uint32t(negSignals_str);
   offset = v1730DPP_str_to_uint32t(offset_str);
   cThresh = v1730DPP_str_to_uint32t(cThresh_str);
+  discrimMode = v1730DPP_str_to_uint32t(discrimMode_str);
   cCFDDelay = v1730DPP_str_to_uint32t(cCFDDelay_str);
   cCFDFraction = v1730DPP_str_to_uint32t(cCFDFraction_str);
   dRange = v1730DPP_str_to_uint32t(dRange_str);
@@ -352,11 +369,14 @@ void v1730DPP_LoadSettings(){
   meanBaseline = v1730DPP_str_to_uint32t(meanBaseline_str);
   fixedBaseline = v1730DPP_str_to_uint32t(fixedBaseline_str);
   restartBaseline = v1730DPP_str_to_uint32t(restartBaseline_str);
-  discrimMode = v1730DPP_str_to_uint32t(discrimMode_str);
   trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
   trigPileUp = v1730DPP_str_to_uint32t(trigPileUp_str);
   oppPol = v1730DPP_str_to_uint32t(oppPol_str);
   chargeThresh = v1730DPP_str_to_uint32t(chargeThresh_str);
+
+  trigMode = v1730DPP_str_to_uint32t(trigMode_str);
+  enableTrigProp = v1730DPP_str_to_uint32t(enableTrigProp_str);
+  shapedTrig = v1730DPP_str_to_uint32t(shapedTrig_str);
 
   printf("DPP Settings:\n");
   printf("--------------------------------------------------\n\n");
@@ -372,6 +392,7 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
   v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
   v1730DPP_PrintSettings(cThresh, "Threshold", enableCh);
+  v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
   v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
   v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
   v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
@@ -379,11 +400,14 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
   v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
   v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
-  v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
   v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
   v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
+
+  v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
+  v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 2);
+  v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
   printf("\n--------------------------------------------------\n");
   
   // Is the digitizer working?
@@ -497,6 +521,16 @@ void v1730DPP_LoadSettings(){
     }
   }
 
+  // Discrimination Mode (LED or CFD)
+  if (discrimMode.size()==1){
+    v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);
+  }
+  else {
+    for(int i=0; i<discrimMode.size(); i++){
+      v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], enableCh[i]);
+    }
+  }
+
   // CFD Delay and Fraction
   if (cCFDDelay.size()==1 && cCFDFraction.size()==1){
     v1730DPP_setCFDG(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[0]);
@@ -590,16 +624,6 @@ void v1730DPP_LoadSettings(){
     }
   }
 
-  // Discrimination Mode (LED or CFD)
-  if (discrimMode.size()==1){
-    v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);
-  }
-  else {
-    for(int i=0; i<discrimMode.size(); i++){
-      v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], enableCh[i]);
-    }
-  }
-
   // Trigger Counting Mode (Accepted Self-Triggers Only or All Self-Triggers)
   if (trigCountMode.size()==1){
     v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);
@@ -617,6 +641,35 @@ void v1730DPP_LoadSettings(){
   else {
     for(int i=0; i<trigPileUp.size(); i++){
       v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], enableCh[i]);
+    }
+  }
+
+  // *****************************************************
+  // Coincidence settings
+  // *****************************************************
+
+  // Trigger Mode (Normal or Coincidence)
+   if (trigMode.size()==1){
+    v1730DPP_setTriggerModeG(gVme, gV1730Base, trigMode[0]);
+  }
+  else {
+    for(int i=0; i<trigMode.size(); i++){
+      v1730DPP_setTriggerMode(gVme, gV1730Base, trigMode[i], enableCh[i]);
+    }
+  } 
+
+  // Enable Trigger Propagation from Motherboard to Mezzanine (all channels)
+   if (enableTrigProp.size()==1){
+    v1730DPP_setTriggerPropagation(gVme, gV1730Base, enableTrigProp[0]);
+  }
+
+  // Shaped Trigger Width (Coincidence Window Width)
+  if (shapedTrig.size()==1){
+    v1730DPP_setShapedTriggerG(gVme, gV1730Base, shapedTrig[0]);
+  }
+  else {
+    for(int i=0; i<shapedTrig.size(); i++){
+      v1730DPP_setShapedTrigger(gVme, gV1730Base, shapedTrig[i], enableCh[i]);
     }
   }
 }
@@ -673,9 +726,9 @@ INT init_vme_modules()
   v1730DPP_SoftClear(gVme, gV1730Base);
 
   // Get the board and algorithm configs
-  printf("Board config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x8000));
-  printf("DPP Algorithm 1 config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1080));
-  printf("DPP Algorithm 2 config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1084));
+  printf("Board config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+  printf("DPP Algorithm 1 config (ch 0): 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1080));
+  printf("DPP Algorithm 2 config (ch 0): 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1084));
   
   // Diagnostics with register values
   //printf("Shaped Trigger Width: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x8070));
