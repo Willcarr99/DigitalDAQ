@@ -1208,7 +1208,7 @@ void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode)
   }
   switch(mode){
     case 0:
-      printf("Normal Mode enabled: Each channel can self-trigger independently\n"); break;
+      printf("Normal Mode enabled: Each channel self-triggers independently\n"); break;
     case 1:
       printf("Coincidence Mode enabled: Each channel saves the event only when it occurs inside the shaped trigger width\n"); break;
   }
@@ -1238,9 +1238,9 @@ void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, 
   }
   switch(mode){
     case 0:
-      printf("Normal Mode enabled for channel %d: Channel %d can self-trigger independently\n"); break;
+      printf("Normal Mode enabled for channel %d: Channel self-triggers independently\n"); break;
     case 1:
-      printf("Coincidence Mode enabled for channel %d: Channel %d saves the event only when it occurs inside the shaped trigger width\n"); break;
+      printf("Coincidence Mode enabled for channel %d: Event saved only when it occurs inside the shaped trigger width\n"); break;
   }
 
   uint32_t bin;
@@ -1271,9 +1271,9 @@ void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t
   }
   switch(mode){
     case 0:
-      printf("Trigger propagation disabled for all channels\n"); break;
+      printf("Trigger propagation from motherboard disabled for all channels\n"); break;
     case 1:
-      printf("Trigger propagation enabled for all channels\n"); break;
+      printf("Trigger propagation from motherboard enabled for all channels\n"); break;
   }
 
   // Read the current board config register, then add this new trigger propagation mode

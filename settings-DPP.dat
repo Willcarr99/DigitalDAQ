@@ -16,8 +16,8 @@
 700        ## Long gate | ns
 400        ## Short gate | ns
 110        ## Gate offset | ns
-0          ## Trigger Hold-Off | ns, multiple of 8, if too low, auto stops at end of long gate
-0          ## Pre Trigger | ns, multiple of 8, if too low, auto adjusts to min = Gate offset + 38 ns
+0          ## Trigger Hold-Off | ns, mult. of 8, if too low auto stops at end of long gate
+0          ## Pre Trigger | ns, mult. of 8, if too low auto adjusts to min = Gate offset + 38 ns
 1          ## Gain | 0-5
 1          ## negSignals | 1=yes, 0=no
 32767      ## DC Offset | in DAC LSB Units
@@ -36,6 +36,6 @@
 0          ## Charge Zero Suppression Threshold | in LSB, 0 = disabled (default), cuts Q_Long < Q_thresh
 
 0          ## Trigger Mode | 0 = Normal (Default), 1 = Coincidence, 2 = Anti-Coincidence (Not available)
-0          ## Trigger Propagation | Single value, 0 = disabled (default), 1 = enabled (required for coincidences)
+0          ## Trigger Propagation From Motherboard | Single value, 0 = disabled (default), 1 = enabled (required for coincidences)
 0          ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
-0          ## Shaped Trigger (i.e. Coincidence Window) Width | ns, multiple of 8, max 8176 ns, 0 = Normal mode
+0          ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode
