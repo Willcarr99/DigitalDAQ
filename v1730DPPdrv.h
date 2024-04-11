@@ -57,6 +57,8 @@ extern "C" {
   void V1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline, int channel);
   void v1730DPP_setThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold);
   void v1730DPP_setThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold, int channel);
+  void v1730DPP_setChargePedestalG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+  void v1730DPP_setChargePedestal(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
   void v1730DPP_setChargeZeroSuppressionThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh);
   void v1730DPP_setChargeZeroSuppressionThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh, int channel);
   void v1730DPP_setTriggerHoldoffG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width);
@@ -70,6 +72,12 @@ extern "C" {
   void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setTriggerPileup(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setPileUpRejectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setPileUpRejection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setOverRangeRejctionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setOverRangeRejction(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setSelfTriggerAcquisitionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setSelfTriggerAcquisition(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setBaselineCalcRestartG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setBaselineCalcRestart(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setInputSmoothingG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);

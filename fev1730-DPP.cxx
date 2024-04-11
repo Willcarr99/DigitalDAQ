@@ -270,15 +270,17 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
 
 void v1730DPP_LoadSettings(){
   
-  string enableCh_str, tlong_str, tshort_str, toffset_str, trigHoldOff_str, preTrig_str;
+  string enableCh_str, tlong_str, tshort_str, toffset_str, preTrig_str, trigHoldOff_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
-  string trigPileUp_str, oppPol_str, restartBaseline_str, offset_str;
-  string cGain_str, cThresh_str, cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str;
+  string trigPileUp_str, oppPol_str, restartBaseline_str, offset_str, cGain_str, cThresh_str;
+  string cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str, testPulse_str;
+  string trigHyst_str, chargePed_str, pileupRej_str, overRangeRej_str, selfTrigAcq_str;
   string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str;
 
-  vector<uint32_t> enableCh, tlong, tshort, toffset, trigHoldOff, preTrig, inputSmoothing, meanBaseline;
-  vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline;
-  vector<uint32_t> offset, cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh;
+  vector<uint32_t> enableCh, tlong, tshort, toffset, preTrig, trigHoldOff, inputSmoothing, meanBaseline;
+  vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline, offset;
+  vector<uint32_t> cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh, testPulse;
+  vector<uint32_t> pileupRej, overRangeRej, selfTrigAcq, chargePed, trigHyst;
   vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig;
 
   ifstream f("settings-DPP.dat");
@@ -302,11 +304,13 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> toffset_str;
   f.ignore(200,'\n');
-  f >> trigHoldOff_str;
-  f.ignore(200,'\n');
   f >> preTrig_str;
   f.ignore(200,'\n');
+  f >> trigHoldOff_str;
+  f.ignore(200,'\n');
   f >> cGain_str;
+  f.ignore(200,'\n');
+  f >> dRange_str;
   f.ignore(200,'\n');
   f >> negSignals_str;
   f.ignore(200,'\n');
@@ -322,8 +326,6 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   
   f.ignore(200,'\n');
-  f >> dRange_str;
-  f.ignore(200,'\n');
   f >> inputSmoothing_str;
   f.ignore(200,'\n');
   f >> meanBaseline_str;
@@ -334,9 +336,21 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> trigPileUp_str;
   f.ignore(200,'\n');
+  f >> pileupRej_str;
+  f.ignore(200,'\n');
+  f >> overRangeRej_str;
+  f.ignore(200,'\n');
+  f >> selfTrigAcq_str;
+  f.ignore(200,'\n');
   f >> oppPol_str;
   f.ignore(200,'\n');
   f >> chargeThresh_str;
+  f.ignore(200,'\n');
+  f >> chargePed_str;
+  f.ignore(200,'\n');
+  f >> trigHyst_str;
+  f.ignore(200,'\n');
+  f >> testPulse_str;
   f.ignore(200,'\n');
 
   f.ignore(200,'\n');
@@ -355,8 +369,8 @@ void v1730DPP_LoadSettings(){
   tlong = v1730DPP_str_to_uint32t(tlong_str);
   tshort = v1730DPP_str_to_uint32t(tshort_str);
   toffset = v1730DPP_str_to_uint32t(toffset_str);
-  trigHoldOff = v1730DPP_str_to_uint32t(trigHoldOff_str);
   preTrig = v1730DPP_str_to_uint32t(preTrig_str);
+  trigHoldOff = v1730DPP_str_to_uint32t(trigHoldOff_str);
   cGain = v1730DPP_str_to_uint32t(cGain_str);
   negSignals = v1730DPP_str_to_uint32t(negSignals_str);
   offset = v1730DPP_str_to_uint32t(offset_str);
@@ -370,8 +384,14 @@ void v1730DPP_LoadSettings(){
   fixedBaseline = v1730DPP_str_to_uint32t(fixedBaseline_str);
   restartBaseline = v1730DPP_str_to_uint32t(restartBaseline_str);
   trigPileUp = v1730DPP_str_to_uint32t(trigPileUp_str);
+  pileupRej = v1730DPP_str_to_uint32t(pileupRej_str);
+  overRangeRej = v1730DPP_str_to_uint32t(overRangeRej_str);
+  selfTrigAcq = v1730DPP_str_to_uint32t(selfTrigAcq_str);
   oppPol = v1730DPP_str_to_uint32t(oppPol_str);
   chargeThresh = v1730DPP_str_to_uint32t(chargeThresh_str);
+  chargePed = v1730DPP_str_to_uint32t(chargePed_str);
+  trigHyst = v1730DPP_str_to_uint32t(trigHyst_str);
+  testPulse = v1730DPP_str_to_uint32t(testPulse_str);
 
   trigMode = v1730DPP_str_to_uint32t(trigMode_str);
   enableTrigProp = v1730DPP_str_to_uint32t(enableTrigProp_str);
@@ -386,8 +406,8 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(tlong, "Long gate", enableCh);
   v1730DPP_PrintSettings(tshort, "Short gate", enableCh);
   v1730DPP_PrintSettings(toffset, "Gate offset", enableCh);
-  v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
   v1730DPP_PrintSettings(preTrig, "Pre-Trigger", enableCh);
+  v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
   v1730DPP_PrintSettings(cGain, "Gain", enableCh);
   v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
   v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
@@ -401,8 +421,14 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
   v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
   v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
+  v1730DPP_PrintSettings(pileupRej, "Pile Up Rejection", enableCh);
+  v1730DPP_PrintSettings(overRangeRej, "Over-Range Rejction", enableCh);
+  v1730DPP_PrintSettings(selfTrigAcq, "Self Trigger Event Acquisition", enableCh);
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
+  v1730DPP_PrintSettings(chargePed, "Charge Pedestal", enableCh);
+  v1730DPP_PrintSettings(trigHyst, "Trigger Hysteresis",enableCh);
+  v1730DPP_PrintSettings(testPulse, "Test Pulse", enableCh);
 
   v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
   v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 2);
@@ -521,6 +547,42 @@ void v1730DPP_LoadSettings(){
     }
   }
 
+  // Charge Pedestal
+  if (chargePed.size()==1){
+    v1730DPP_setChargePedestalG(gVme, gV1730Base, chargePed[0]);
+  }
+  else {
+    for(int i=0; i<chargePed.size(); i++){
+      v1730DPP_setChargePedestal(gVme, gV1730Base, chargePed[i], enableCh[i]);
+    }
+  }
+
+  // Trigger Hysteresis
+  if (trigHyst.size()==1){
+    v1730DPP_setTriggerHysteresisG(gVme, gV1730Base, trigHyst[0]);
+  }
+  else {
+    for(int i=0; i<trigHyst.size(); i++){
+      v1730DPP_setTriggerHysteresis(gVme, gV1730Base, trigHyst[i], enableCh[i]);
+    }
+  }
+
+  // Test Pulse
+  if (testPulse.size()==1){
+    if (testPulse[0]>0){
+      v1730DPP_setTestPulseG(gVme, gV1730Base, 1);
+      v1730DPP_setTestPulseRateG(gVme, gV1730Base, testPulse[0]-1);
+    }
+  }
+  else {
+    for(int i=0; i<testPulse.size(); i++){
+      if (testPulse[i]>0){
+        v1730DPP_setTestPulse(gVme, gV1730Base, 1, enableCh[i]);
+        v1730DPP_setTestPulseRate(gVme, gV1730Base, testPulse[i]-1, enableCh[i])
+      }
+    }
+  }
+
   // Discrimination Mode (LED or CFD)
   if (discrimMode.size()==1){
     v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);
@@ -584,16 +646,6 @@ void v1730DPP_LoadSettings(){
     }
   }
 
-  // Trigger Holdoff Width
-  if (trigHoldOff.size()==1){
-    v1730DPP_setTriggerHoldoffG(gVme, gV1730Base, trigHoldOff[0]);
-  }
-  else {
-    for(int i=0; i<trigHoldOff.size(); i++){
-      v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], enableCh[i]);
-    }
-  }
-
   // Pre Trigger Width
   if (preTrig.size()==1){
     v1730DPP_setPreTriggerG(gVme, gV1730Base, preTrig[0]);
@@ -601,6 +653,16 @@ void v1730DPP_LoadSettings(){
   else {
     for(int i=0; i<preTrig.size(); i++){
       v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], enableCh[i]);
+    }
+  }
+
+  // Trigger Holdoff Width
+  if (trigHoldOff.size()==1){
+    v1730DPP_setTriggerHoldoffG(gVme, gV1730Base, trigHoldOff[0]);
+  }
+  else {
+    for(int i=0; i<trigHoldOff.size(); i++){
+      v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], enableCh[i]);
     }
   }
 
@@ -631,6 +693,36 @@ void v1730DPP_LoadSettings(){
   else {
     for(int i=0; i<trigPileUp.size(); i++){
       v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], enableCh[i]);
+    }
+  }
+
+  // Pile-Up Rejection
+  if (pileupRej.size()==1){
+    v1730DPP_setPileUpRejectionG(gVme, gV1730Base, pileupRej[0]);
+  }
+  else {
+    for(int i=0; i<pileupRej.size(); i++){
+      v1730DPP_setPileUpRejection(gVme, gV1730Base, pileupRej[i], enableCh[i]);
+    }
+  }
+
+  // Over-Range Rejection
+  if (overRangeRej.size()==1){
+    v1730DPP_setOverRangeRejectionG(gVme, gV1730Base, overRangeRej[0]);
+  }
+  else {
+    for(int i=0; i<overRangeRej.size(); i++){
+      v1730DPP_setOverRangeRejction(gVme, gV1730Base, overRangeRej[i], enableCh[i]);
+    }
+  } 
+
+  // Self Trigger Event Acquisition
+  if (selfTrigAcq.size()==1){
+    v1730DPP_setSelfTriggerAcquisitionG(gVme, gV1730Base, selfTrigAcq[0]);
+  }
+  else {
+    for(int i=0; i<selfTrigAcq.size(); i++){
+      v1730DPP_setSelfTriggerAcquisition(gVme, gV1730Base, selfTrigAcq[i], enableCh[i]);
     }
   }
 

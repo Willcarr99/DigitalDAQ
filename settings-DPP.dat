@@ -13,27 +13,33 @@
 
 \********************************************************************/
 0,1        ## Enabled Channels | 0-15
-700        ## Long gate | ns
-400        ## Short gate | ns
-110        ## Gate offset | ns
-0          ## Trigger Hold-Off | ns, mult. of 8, if too low auto stops at end of long gate
-0          ## Pre Trigger | ns, mult. of 8, if too low auto adjusts to min = Gate offset + 38 ns
-1          ## Gain | 0-5
+700        ## Long gate | ns, main charge integration gate
+400        ## Short gate | ns, extra charge integration gate for pulse shape discrimination
+110        ## Gate offset | ns, offset before trigger for long/short gates, Long gate < Short gate < Gate offset
+0          ## Pre Trigger | ns (mult. of 8), offset before trigger for establishing baseline, if too low, = Gate offset + 38 ns
+0          ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
+1          ## Gain | 0-5, charge/ch, 0 = 5fC, 1 = 20fC, 2 = 80fC, 3 = 320fC, 4 = 1.28pC, 5 = 5.12pC (assuming dynamic range = 2 Vpp)
+0          ## Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
 1          ## negSignals | 1=yes, 0=no
 32767      ## DC Offset | in DAC LSB Units
 3          ## Trigger threshold | in mV
 1          ## Discrimination Mode | 0 = LED mode, 1 = CFD mode
-40         ## CFD Delay | ns
-75         ## CFD Fraction | %
+40         ## CFD Delay | ns, ignored if LED mode
+75         ## CFD Fraction | %, ignored if LED mode
 
-0          ## Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp
 2          ## Input Smoothing | 0 = disabled, 1,2,3,4 = input pulse averaged over 2,4,8,16 samples, respectively
 3          ## Mean Baseline Calc | 0 = fixed baseline, 1,2,3,4 = use 16,64,256,1024 samples, respectively
 0          ## Fixed Baseline | in mV, 0 = disabled, Mean Baseline Calc must be 0 if enabled
 0          ## Baseline Calc Restart | 0 = after trigger hold-off (default), 1 = after long gate
 0          ## Pile Up Counted as a Trigger | 0 = disabled (default), 1 = enabled
+0          ## Pile Up Rejection | 0 = disabled (default), 1 = enabled
+0          ## Over-Range Rejection | 0 = disabled (default), 1 = enabled, rejects events when a sample is over/under dynamic range
+0          ## Trigger Acquisition | 0 = trigger used to acquire event and propagated to motherboard (default), 1 = only propagated
 0          ## Detect Signals with Opposite Polarity | 0 = enabled (default), 1 = disabled
 0          ## Charge Zero Suppression Threshold | in LSB, 0 = disabled (default), cuts Q_Long < Q_thresh
+0          ## Charge Pedestal | 0 = disable (default), 1 = enable, enabling adds a fixed value of 1024 to the charge
+0          ## Trigger Hysteresis | 0 = enable (default), 1 = disable, enabling prevents re-triggering on the same pulse
+0          ## Test Pulse Emulator | 0 = disable, 1 = 1 kHz, 2 = 10 kHz, 3 = 100 kHz, 4 = 1 MHz
 
 0          ## Trigger Mode | 0 = Normal (Default), 1 = Coincidence, 2 = Anti-Coincidence (Not available)
 0          ## Trigger Propagation From Motherboard | Single value, 0 = disabled (default), 1 = enabled (required for coincidences)

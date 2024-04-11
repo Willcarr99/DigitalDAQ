@@ -58,8 +58,8 @@ void v1730DPP_RegisterWrite(MVME_INTERFACE *mvme, uint32_t base, int offset, uin
 }
 
 /*****************************************************************/
-void v1730DPP_setAggregateOrg(MVME_INTERFACE *mvme, uint32_t base, int code){
-
+void v1730DPP_setAggregateOrg(MVME_INTERFACE *mvme, uint32_t base, int code)
+{
   if((code < 0) | (code > 10)){
     printf("ERROR: Aggregate code must be between 0 and 10!\n");
     return;
@@ -72,7 +72,6 @@ void v1730DPP_setAggregateOrg(MVME_INTERFACE *mvme, uint32_t base, int code){
 /*****************************************************************/
 void v1730DPP_setAggregateSizeG(MVME_INTERFACE *mvme, uint32_t base, int nevents)
 {
-
   if(nevents > 1023){
     printf("ERROR: nevents must be smaller than 1024!\n");
     return;
@@ -85,7 +84,6 @@ void v1730DPP_setAggregateSizeG(MVME_INTERFACE *mvme, uint32_t base, int nevents
 /*****************************************************************/
 void v1730DPP_setAggregateSize(MVME_INTERFACE *mvme, uint32_t base, int nevents, int channel)
 {
-
   if(nevents > 1023){
     printf("ERROR: nevents must be smaller than 1024!\n");
     return;
@@ -152,12 +150,9 @@ void v1730DPP_setDynamicRange(MVME_INTERFACE *mvme, uint32_t base, int i, int ch
     
   regWrite(mvme, base, reg, i);
 }
-
-
 /*****************************************************************/
 void v1730DPP_setCFDG(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint32_t percent)
 {
-
   if(delay > 255*2){
     printf("ERROR: delay must be less than 510 ns\n");
     return;
@@ -182,7 +177,6 @@ void v1730DPP_setCFDG(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint3
 /*****************************************************************/
 void v1730DPP_setCFD(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint32_t percent, int channel)
 {
-
   if(delay > 255*2){
     printf("ERROR: delay must be less than 510 ns\n");
     return;
@@ -212,7 +206,6 @@ void v1730DPP_setCFD(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint32
 /*****************************************************************/
 void v1730DPP_setShortGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
 {
-
   if(width > 8190){
     printf("ERROR: Short gate width must be less than 8190 ns\n");
     return;
@@ -225,7 +218,6 @@ void v1730DPP_setShortGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
 /*****************************************************************/
 void v1730DPP_setShortGate(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel)
 {
-
   if(width > 8190){
     printf("ERROR: Short gate width must be less than 8190 ns\n");
     return;
@@ -242,7 +234,6 @@ void v1730DPP_setShortGate(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, 
 /*****************************************************************/
 void v1730DPP_setLongGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
 {
-
   if(width > 131070){
     printf("ERROR: Long gate width must be less than 131 us\n");
     return;
@@ -255,7 +246,6 @@ void v1730DPP_setLongGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
 /*****************************************************************/
 void v1730DPP_setLongGate(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel)
 {
-
   if(width > 131070){
     printf("ERROR: Long gate width must be less than 131 us\n");
     return;
@@ -272,7 +262,6 @@ void v1730DPP_setLongGate(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, i
 /*****************************************************************/
 void v1730DPP_setGateOffsetG(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset)
 {
-
   if(offset > 510000){
     printf("ERROR: Gate offset width must be less than 510 us\n");
     return;
@@ -285,7 +274,6 @@ void v1730DPP_setGateOffsetG(MVME_INTERFACE *mvme, uint32_t base, uint32_t offse
 /*****************************************************************/
 void v1730DPP_setGateOffset(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset, int channel)
 {
-
   if(offset > 510000){
     printf("ERROR: Gate offset width must be less than 510 us\n");
     return;
@@ -304,7 +292,6 @@ void v1730DPP_setDCOffsetG(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset)
 {
   // Check that bit[2] of 0x1088 (Channen n Status) is 0 first.
   // Write DC Offset value to be half of DAQ LSB unit max (0xFFFF/2 = 0x8000 = 32768).
-  // In settings-DPP.dat, the input used to be 8000 which is the hexadecimal form of 32768
 
   while(((regRead(mvme, base, V1730DPP_CHANNELN_STATUS) & 0x4)>>2) == 1){
     printf(".");
@@ -326,14 +313,12 @@ void v1730DPP_setDCOffsetG(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset)
     sleep(1);
     //printf("...\n");
   }
-  
 }
 /*****************************************************************/
 void v1730DPP_setDCOffset(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset, int channel)
 {
   // Check that bit[2] of 0x1088 (Channen n Status) is 0 first.
   // Write DC Offset value to be half of DAQ LSB unit max (0xFFFF/2 = 0x8000 = 32768).
-  // In settings-DPP.dat, the input used to be 8000 which is the hexadecimal form of 32768
 
   while(((regRead(mvme, base, V1730DPP_CHANNELN_STATUS) & 0x4)>>2) == 1){
     printf(".");
@@ -359,7 +344,6 @@ void v1730DPP_setDCOffset(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset, 
 /*****************************************************************/
 void v1730DPP_setMeanBaselineCalcG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 4) | (mode < 0)){
     printf("ERROR: Baseline calculation settings have 5 options, 0-4.\n");
     return;
@@ -385,12 +369,10 @@ void v1730DPP_setMeanBaselineCalcG(MVME_INTERFACE *mvme, uint32_t base, uint32_t
   //printf("DPP1 After Baseline: %u\n", value);
   
   regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
-  
 }
 /*****************************************************************/
 void v1730DPP_setMeanBaselineCalc(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 4) | (mode < 0)){
     printf("ERROR: Baseline calculation settings have 5 options, 0-4.\n");
     return;
@@ -416,11 +398,10 @@ void v1730DPP_setMeanBaselineCalc(MVME_INTERFACE *mvme, uint32_t base, uint32_t 
   value = value | (bin << 20);
   
   regWrite(mvme, base, reg, value);
-  
 }
 /*****************************************************************/
-void v1730DPP_setFixedBaselineG(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline){
-    
+void v1730DPP_setFixedBaselineG(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline)
+{
   uint32_t fb = 1000*baseline/120;
   uint32_t vRange = regRead(mvme, base, V1730DPP_DYNAMIC_RANGE);
   if (vRange == 1)fb = 1000*baseline/30;
@@ -442,8 +423,8 @@ void v1730DPP_setFixedBaselineG(MVME_INTERFACE *mvme, uint32_t base, uint32_t ba
   regWrite(mvme, base, V1730DPP_FIXED_BASELINE_G, fb);
 }
 /*****************************************************************/
-void v1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline, int channel){
-    
+void v1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline, int channel)
+{    
   uint32_t fb = 1000*baseline/120;
   uint32_t vRange = regRead(mvme, base, (V1730DPP_DYNAMIC_RANGE | channel << 8));
   if (vRange == 1)fb = 1000*baseline/30;
@@ -470,7 +451,6 @@ void v1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t bas
 /*****************************************************************/
 void v1730DPP_setThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold)
 {
-
   // Convert the threshold, in mV, into an LSB value depending on the
   // dynamic range of the channel
   uint32_t t = 1000*threshold/120;
@@ -487,9 +467,50 @@ void v1730DPP_setThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t thresh
   regWrite(mvme, base, V1730DPP_TRIGGER_THRESHOLD_G, t);
 }
 /*****************************************************************/
+void v1730DPP_setChargePedestalG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+      case 0:
+          printf("Charge pedestal disabled for all channels\n"); break;
+      case 1:
+          printf("Charge pedestal enabled for all channels: a fixed value of 1024 is added to the charge\n"); break;
+  }
+    
+  // Read the current algorithm control register, then add this new charge pedestal setting
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | mode << 4;
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
+}
+/*****************************************************************/
+void v1730DPP_setChargePedestal(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+    return;
+  }
+  switch(mode){
+    case 0:
+      printf("Charge pedestal for channel %d disabled\n",channel); break;
+    case 1:
+      printf("Charge pedestal for channel %d enabled: a fixed value of 1024 is added to the charge\n",channel); break;
+  }
+
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+
+  // Read the current algorithm control register, then add this new charge pedestal setting
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | mode << 4;
+  
+  regWrite(mvme, base, reg, value);
+}
+/*****************************************************************/
 void v1730DPP_setThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold, int channel)
 {
-
   // Convert the threshold, in mV, into an LSB value depending on the
   // dynamic range of the channel
   uint32_t t = 1000*threshold/120;
@@ -511,7 +532,6 @@ void v1730DPP_setThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t thresho
 /*****************************************************************/
 void v1730DPP_setChargeZeroSuppressionThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh)
 {
-  
   if(qthresh > 32675){
     printf("ERROR: Charge Threshold is too high!\n");
     return;
@@ -534,7 +554,6 @@ void v1730DPP_setChargeZeroSuppressionThresholdG(MVME_INTERFACE *mvme, uint32_t 
 /*****************************************************************/
 void v1730DPP_setChargeZeroSuppressionThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh, int channel)
 {
-  
   if(qthresh > 32675){
     printf("ERROR: Charge Threshold is too high!\n");
     return;
@@ -563,7 +582,6 @@ void v1730DPP_setChargeZeroSuppressionThreshold(MVME_INTERFACE *mvme, uint32_t b
 /*****************************************************************/
 void v1730DPP_setTriggerHoldoffG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
 {
-
   if(width > 32767){
     printf("ERROR: Trigger Holdoff must be less than 32767 ns\n");
     return;
@@ -580,7 +598,6 @@ void v1730DPP_setTriggerHoldoffG(MVME_INTERFACE *mvme, uint32_t base, uint32_t w
 /*****************************************************************/
 void v1730DPP_setTriggerHoldoff(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel)
 {
-
   if(width > 32767){
     printf("ERROR: Trigger Holdoff must be less than 32767 ns\n");
     return;
@@ -600,7 +617,6 @@ void v1730DPP_setTriggerHoldoff(MVME_INTERFACE *mvme, uint32_t base, uint32_t wi
 /*****************************************************************/
 void v1730DPP_setPreTriggerG(MVME_INTERFACE *mvme, uint32_t base, uint32_t preTrigger)
 {
-    
     uint32_t gate_offset = regRead(mvme, base, V1730DPP_GATE_OFFSET);
     gate_offset = gate_offset & 0xFF;
     
@@ -621,7 +637,6 @@ void v1730DPP_setPreTriggerG(MVME_INTERFACE *mvme, uint32_t base, uint32_t preTr
 /*****************************************************************/
 void v1730DPP_setPreTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t preTrigger, int channel)
 {
-    
     uint32_t gate_offset = regRead(mvme, base, (V1730DPP_GATE_OFFSET | channel << 8 ));
     gate_offset = gate_offset & 0xFF;
     
@@ -644,7 +659,6 @@ void v1730DPP_setPreTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t preTri
 /*****************************************************************/
 void v1730DPP_setGainG(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain)
 {
-
   if((gain > 7) | (gain < 0)){
     printf("ERROR: Gain setting must be between 0 and 7\n");
     return;
@@ -694,7 +708,6 @@ void v1730DPP_setGainG(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain)
 /*****************************************************************/
 void v1730DPP_setGain(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain, int channel)
 {
-
   if((gain > 7) | (gain < 0)){
     printf("ERROR: Gain setting must be between 0 and 7\n");
     return;
@@ -748,7 +761,6 @@ void v1730DPP_setGain(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain, int ch
 /*****************************************************************/
 void v1730DPP_setDiscriminationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: mode setting must be 0 (LED) or 1 (CFD)\n");
     return;
@@ -769,7 +781,6 @@ void v1730DPP_setDiscriminationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32
 /*****************************************************************/
 void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: mode setting must be 0 (LED) or 1 (CFD)\n");
     return;
@@ -793,16 +804,15 @@ void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_
 /*****************************************************************/
 void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Pile-up within the gate is not counted as a trigger for all channels\n"); break;
-        case 1:
-            printf("Pile-up within the gate is counted as a trigger for all channels\n"); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Pile-up within the gate is not counted as a trigger for all channels\n"); break;
+    case 1:
+      printf("Pile-up within the gate is counted as a trigger for all channels\n"); break;
+  }
     
   // Read the current algorithm control register, then add this new trigger pile-up setting
   uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
@@ -813,16 +823,15 @@ void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mo
 /*****************************************************************/
 void v1730DPP_setTriggerPileup(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Pile-up within the gate is not counted as a trigger for channel % d\n", channel); break;
-        case 1:
-            printf("Pile-up within the gate is counted as a trigger for channel %d\n", channel); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Pile-up within the gate is not counted as a trigger for channel %d\n", channel); break;
+    case 1:
+      printf("Pile-up within the gate is counted as a trigger for channel %d\n", channel); break;
+  }
     
   // Channel mask
   uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
@@ -834,18 +843,140 @@ void v1730DPP_setTriggerPileup(MVME_INTERFACE *mvme, uint32_t base, uint32_t mod
   regWrite(mvme, base, reg, value);
 }
 /*****************************************************************/
+void v1730DPP_setPileUpRejectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Pile-up within the gate is not rejected for all channels\n"); break;
+    case 1:
+      printf("Pile-up within the gate is rejected for all channels\n"); break;
+  }
+    
+  // Read the current algorithm control register, then add this new pile-up rejection setting
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | mode << 26;
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);  
+}
+/*****************************************************************/
+void v1730DPP_setPileUpRejection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Pile-up within the gate is not rejected for channel %d\n", channel); break;
+    case 1:
+      printf("Pile-up within the gate is rejected for channel %d\n", channel); break;
+  }
+    
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+    
+  // Read the current algorithm control register, then add this new pile-up rejection setting
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | mode << 26;
+  
+  regWrite(mvme, base, reg, value);
+}
+/*****************************************************************/
+void v1730DPP_setSelfTriggerAcquisitionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Self-trigger is used to acquire events and is propagated to the motherboard for all channels\n"); break;
+    case 1:
+      printf("Self-trigger is not used to acquire events but is propagated to the motherboard for all channels\n"); break;
+  }
+    
+  // Read the current algorithm control register, then add this new self-trigger acquisition setting
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | mode << 24;
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);    
+}
+/*****************************************************************/
+void v1730DPP_setSelfTriggerAcquisition(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Self-trigger is used the acquire events and is propagated to the motherboard for channel %d\n", channel); break;
+    case 1:
+      printf("Self-trigger is not used to acquire events but is propagated to the motherboard for channel %d\n", channel); break;
+  }
+    
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+    
+  // Read the current algorithm control register, then add this new self-trigger acquisition setting
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | mode << 24;
+  
+  regWrite(mvme, base, reg, value);
+}
+/*****************************************************************/
+void v1730DPP_setOverRangeRejectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Disabled event rejection when a sample is over/under dynamic range during long gate integration for all channels\n"); break;
+    case 1:
+      printf("Enabled event rejection when sample is over/under dynamic range during long gate integration for all channels\n"); break;
+  }
+    
+  // Read the current algorithm control register, then add this new over-range rejection setting
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
+  value = value | mode << 29;
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);    
+}
+/*****************************************************************/
+void v1730DPP_setOverRangeRejection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Disabled event rejection when a sample is over/under dynamic range during long gate integration for channel %d\n", channel); break;
+    case 1:
+      printf("Enabled event rejection when a sample is over/under dynamic range during long gate integration for channel %d\n", channel); break;
+  }
+    
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
+    
+  // Read the current algorithm control register, then add this new over-range rejection setting
+  uint32_t value = regRead(mvme, base, reg);
+  value = value | mode << 29;
+  
+  regWrite(mvme, base, reg, value);
+}
+/*****************************************************************/
 void v1730DPP_setBaselineCalcRestartG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Baseline calculation does not restart at the end of the long gate\n"); break;
-        case 1:
-            printf("Baseline calculation restarts at the end of the long gate\n"); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+      case 0:
+          printf("Baseline calculation does not restart at the end of the long gate\n"); break;
+      case 1:
+          printf("Baseline calculation restarts at the end of the long gate\n"); break;
+  }
     
   // Read the current algorithm control register, then add this new baseline calc setting
   uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
@@ -856,16 +987,15 @@ void v1730DPP_setBaselineCalcRestartG(MVME_INTERFACE *mvme, uint32_t base, uint3
 /*****************************************************************/
 void v1730DPP_setBaselineCalcRestart(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Baseline calculation does not restart at the end of the long gate for channel %d\n", channel); break;
-        case 1:
-            printf("Baseline calculation restarts at the end of the long gate for channel %d\n", channel); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+  }
+  switch(mode){
+      case 0:
+          printf("Baseline calculation does not restart at the end of the long gate for channel %d\n", channel); break;
+      case 1:
+          printf("Baseline calculation restarts at the end of the long gate for channel %d\n", channel); break;
+  }
     
   // Channel mask
   uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
@@ -879,20 +1009,19 @@ void v1730DPP_setBaselineCalcRestart(MVME_INTERFACE *mvme, uint32_t base, uint32
 /*****************************************************************/
 void v1730DPP_setInputSmoothingG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-    
   if((mode > 4) | (mode < 0)){
     printf("ERROR: input smoothing factor setting must be 0 (disabled), 1 (2 samples), 2 (4 samples), 3 (8 samples), or 4 (16 samples)\n");
     return;
   }
 
   switch(mode){
-      case 0:
-          printf("Disabled smoothed signal for charge integration for all channels\n"); break;
-      default:
-          printf("Enabled smoothed signal for charge integration for all channels\n");
-          uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
-          value = value | 1 << 11;
-          regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+    case 0:
+        printf("Disabled smoothed signal for charge integration for all channels\n"); break;
+    default:
+        printf("Enabled smoothed signal for charge integration for all channels\n");
+        uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+        value = value | 1 << 11;
+        regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
   }
   
   uint32_t bin;
@@ -918,7 +1047,6 @@ void v1730DPP_setInputSmoothingG(MVME_INTERFACE *mvme, uint32_t base, uint32_t m
 /*****************************************************************/
 void v1730DPP_setInputSmoothing(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 4) | (mode < 0)){
     printf("ERROR: input smoothing factor setting must be 0 (disabled), 1 (2 samples), 2 (4 samples), 3 (8 samples), or 4 (16 samples)\n");
     return;
@@ -963,7 +1091,6 @@ void v1730DPP_setInputSmoothing(MVME_INTERFACE *mvme, uint32_t base, uint32_t mo
 /*****************************************************************/
 void v1730DPP_setTestPulseG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: test pulse setting must be 0 (off) or 1 (on)\n");
     return;
@@ -984,7 +1111,6 @@ void v1730DPP_setTestPulseG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 /*****************************************************************/
 void v1730DPP_setTestPulse(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: test pulse setting must be 0 (off) or 1 (on)\n");
     return;
@@ -1008,7 +1134,6 @@ void v1730DPP_setTestPulse(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, i
 /*****************************************************************/
 void v1730DPP_setTestPulseRateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 3) | (mode < 0)){
     printf("ERROR: test pulse rate setting must be 0 (1 kHz), 1 (10 kHz), 2 (100 kHz), or 3 (1 MHz)\n");
     return;
@@ -1035,7 +1160,6 @@ void v1730DPP_setTestPulseRateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mo
 /*****************************************************************/
 void v1730DPP_setTestPulseRate(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 3) | (mode < 0)){
     printf("ERROR: test pulse rate setting must be 0 (1 kHz), 1 (10 kHz), 2 (100 kHz), or 3 (1 MHz)\n");
     return;
@@ -1065,11 +1189,11 @@ void v1730DPP_setTestPulseRate(MVME_INTERFACE *mvme, uint32_t base, uint32_t mod
 /*****************************************************************/
 void v1730DPP_setPolarityG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Polarity setting must be 0 (positive) or 1 (negative)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Polarity for all channels is positive\n"); break;
@@ -1086,11 +1210,11 @@ void v1730DPP_setPolarityG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 /*****************************************************************/
 void v1730DPP_setPolarity(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Polarity setting must be 0 (positive) or 1 (negative)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Polarity for channel %d is positive\n",channel); break;
@@ -1110,11 +1234,11 @@ void v1730DPP_setPolarity(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, in
 /*****************************************************************/
 void v1730DPP_setTriggerHysteresisG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Trigger Hysteresis setting must be 0 (enabled) or 1 (disabled)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Trigger hysteresis for all channels is on\n"); break;
@@ -1132,11 +1256,11 @@ void v1730DPP_setTriggerHysteresisG(MVME_INTERFACE *mvme, uint32_t base, uint32_
 /*****************************************************************/
 void v1730DPP_setTriggerHysteresis(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Trigger Hysteresis setting must be 0 (enabled) or 1 (disabled)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Trigger hysteresis for channel %d is on\n",channel); break;
@@ -1155,12 +1279,13 @@ void v1730DPP_setTriggerHysteresis(MVME_INTERFACE *mvme, uint32_t base, uint32_t
 }
 
 /**********************************************************************/
-void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode){
-    
+void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Opposite Polarity Detection setting must be 0 (enabled) or 1 (disabled)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Enabled detection of opposite polarity signals for all channels\n"); break;
@@ -1173,15 +1298,15 @@ void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, int32_t base, 
   value = value | mode << 31;
   
   regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
-    
 }
 /**********************************************************************/
-void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel){
-    
+void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Opposite Polarity Detection setting must be 0 (enabled) or 1 (disabled)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Enabled detection of opposite polarity signals for channel %d\n", channel); break;
@@ -1197,15 +1322,15 @@ void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, int32_t base, u
   value = value | mode << 31;
   
   regWrite(mvme, base, reg, value);
-    
 }
 /**********************************************************************/
-void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode){
-
+void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Trigger mode must be 0 (Normal) or 1 (Coincidence)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Normal Mode enabled: Each channel self-triggers independently\n"); break;
@@ -1230,12 +1355,13 @@ void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode)
   regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL_G, value);
 }
 /**********************************************************************/
-void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel){
-
+void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Trigger mode must be 0 (Normal) or 1 (Coincidence)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Normal Mode enabled for channel %d: Channel self-triggers independently\n"); break;
@@ -1263,12 +1389,13 @@ void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, 
   regWrite(mvme, base, reg, value);
 }
 /**********************************************************************/
-void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t mode){
-
+void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
   if((mode > 1) | (mode < 0)){
     printf("ERROR: Trigger propagation must be 0 (disabled) or 1 (enabled)\n");
     return;
   }
+
   switch(mode){
     case 0:
       printf("Trigger propagation from motherboard disabled for all channels\n"); break;
@@ -1285,16 +1412,16 @@ void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t
 /*****************************************************************/
 void v1730DPP_setTriggerCountingModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Trigger counting mode for all channels set to trigger from only accepted events\n"); break;
-        case 1:
-            printf("Trigger counting mode for all channels set to trigger from all (even rejected) events\n"); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
+  }
+
+  switch(mode){
+    case 0:
+      printf("Trigger counting mode for all channels set to trigger from only accepted events\n"); break;
+    case 1:
+      printf("Trigger counting mode for all channels set to trigger from all (even rejected) events\n"); break;
+  }
     
   // Read the current algorithm control register, then add this new trigger counting mode
   uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL);
@@ -1305,16 +1432,15 @@ void v1730DPP_setTriggerCountingModeG(MVME_INTERFACE *mvme, uint32_t base, uint3
 /*****************************************************************/
 void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
 {
-    
-    if ((mode > 1) | (mode < 0)){
-      printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
-    }
-    switch(mode){
-        case 0:
-            printf("Trigger counting mode for channel %d set to trigger from only accepted events\n", channel); break;
-        case 1:
-            printf("Trigger counting mode for channel %d set to trigger from all (even rejected) events\n", channel); break;
-    }
+  if ((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (trigger from only accepted events) or 1 (all events)\n");
+  }
+  switch(mode){
+    case 0:
+      printf("Trigger counting mode for channel %d set to trigger from only accepted events\n", channel); break;
+    case 1:
+      printf("Trigger counting mode for channel %d set to trigger from all (even rejected) events\n", channel); break;
+  }
     
   // Channel mask
   uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (channel << 8);
@@ -1326,8 +1452,8 @@ void v1730DPP_setTriggerCountingMode(MVME_INTERFACE *mvme, uint32_t base, uint32
   regWrite(mvme, base, reg, value);
 }
 /**********************************************************************/
-void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t width){
-
+void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
+{
   if(width > 8176){
     printf("ERROR: Shaped trigger width must be less than 8176 ns\n");
     return;
@@ -1338,8 +1464,8 @@ void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t wid
   regWrite(mvme, base, V1730DPP_SHAPED_TRIGGER_WIDTH_G, w);
 }
 /**********************************************************************/
-void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, int32_t base, uint32_t width, int channel){
-
+void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel)
+{
   if(width > 8176){
     printf("ERROR: Shaped trigger width must be less than 8176 ns\n");
     return;
@@ -1353,8 +1479,8 @@ void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, int32_t base, uint32_t widt
   regWrite(mvme, base, reg, w);
 }
 /**********************************************************************/
-void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base){
-     
+void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base)
+{
   while(((regRead(mvme, base, V1730DPP_CHANNELN_STATUS) & 0x4)>>2) == 1){
     printf(".");
     sleep(1);
@@ -1366,23 +1492,21 @@ void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base){
     sleep(1);
   };
   printf("\nDone!\n");  
-
 }
 
 /**********************************************************************/
-void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base)
+{
   while(((regRead(mvme, base, V1730DPP_CHANNELN_STATUS) & 0x4)>>2) == 1){
     printf(".");
     sleep(1);
   };
   printf("\nDone!\n");  
-  
 }
 
 /**********************************************************************/
-void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel){
-
+void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
+{
   printf("Enabling channel %d\n",channel);
   
   uint32_t value = regRead(mvme, base, V1730DPP_CHANNEL_ENABLE_MASK);
@@ -1392,8 +1516,8 @@ void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel){
 }
 
 /**********************************************************************/
-void v1730DPP_DisableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel){
-
+void v1730DPP_DisableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
+{
   printf("Disabling channel %d\n",channel);
   
   uint32_t value = regRead(mvme, base, V1730DPP_CHANNEL_ENABLE_MASK);
@@ -1403,55 +1527,50 @@ void v1730DPP_DisableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel){
 }
 
 /**********************************************************************/
-int v1730DPP_isRunning(MVME_INTERFACE *mvme, uint32_t base){
-     
+int v1730DPP_isRunning(MVME_INTERFACE *mvme, uint32_t base)
+{
   uint32_t value = regRead(mvme, base, V1730DPP_ACQUISITION_STATUS);
 
   uint32_t status = (value & 0x4) >> 2;
 
   return status;
-  
 }
 /**********************************************************************/
-int v1730DPP_EventsReady(MVME_INTERFACE *mvme, uint32_t base){
-     
+int v1730DPP_EventsReady(MVME_INTERFACE *mvme, uint32_t base)
+{
   uint32_t value = regRead(mvme, base, V1730DPP_ACQUISITION_STATUS);
 
   uint32_t status = (value & 0x8) >> 3;
 
   return status;
-  
 }
 /**********************************************************************/
-int v1730DPP_EventsFull(MVME_INTERFACE *mvme, uint32_t base){
-     
+int v1730DPP_EventsFull(MVME_INTERFACE *mvme, uint32_t base)
+{
   uint32_t value = regRead(mvme, base, V1730DPP_ACQUISITION_STATUS);
 
   uint32_t status = (value & 0x10) >> 4;
 
   return status;
-  
 }
 /**********************************************************************/
-int  v1730DPP_EventSize(MVME_INTERFACE *mvme, uint32_t base){
-
+int v1730DPP_EventSize(MVME_INTERFACE *mvme, uint32_t base)
+{
   return regRead(mvme, base, V1730DPP_EVENT_SIZE);
-  
 }
 
 /**********************************************************************/
-int v1730DPP_ReadoutReady(MVME_INTERFACE *mvme, uint32_t base){
-     
+int v1730DPP_ReadoutReady(MVME_INTERFACE *mvme, uint32_t base)
+{     
   uint32_t value = regRead(mvme, base, V1730DPP_READOUT_STATUS);
 
   uint32_t status = (value & 0x1);
 
   return status;
-  
 }
 /**********************************************************************/
-void v1730DPP_AcqCtl(MVME_INTERFACE *mvme, uint32_t base, uint32_t command){
-
+void v1730DPP_AcqCtl(MVME_INTERFACE *mvme, uint32_t base, uint32_t command)
+{
   // Read the current algorithm control register, then add this new trigger mode
   uint32_t value = regRead(mvme, base, V1730DPP_ACQUISITION_CONTROL);
   
@@ -1463,8 +1582,8 @@ void v1730DPP_AcqCtl(MVME_INTERFACE *mvme, uint32_t base, uint32_t command){
   regWrite(mvme, base, V1730DPP_ACQUISITION_CONTROL, value);
 }
 /**********************************************************************/
-void v1730DPP_getChannelStatus(MVME_INTERFACE *mvme, uint32_t base, int channel){
-
+void v1730DPP_getChannelStatus(MVME_INTERFACE *mvme, uint32_t base, int channel)
+{
   printf("---------CHANNEL %d----------------------------\n",channel);    
   uint32_t reg = regRead(mvme, base, V1730DPP_CHANNEL_STATUS | (channel << 8));  
   printf("Channel status %d: 0x%x\n", channel, reg );  
@@ -1482,11 +1601,10 @@ void v1730DPP_getChannelStatus(MVME_INTERFACE *mvme, uint32_t base, int channel)
   printf("ADC Calibration: %d\n", (reg & 0x8) >> 3);
   printf("Over Temperature shutdown: %d\n", (reg & 0x100) >> 8);
   printf("------------------------------------------------\n");
-  
 }
 /**********************************************************************/
-void v1730DPP_getFirmwareRev(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_getFirmwareRev(MVME_INTERFACE *mvme, uint32_t base)
+{
   uint32_t reg = regRead(mvme, base, V1730DPP_FIRMWARE_REV);
 
   printf("Register: 0x%x\n", reg);
@@ -1501,41 +1619,36 @@ void v1730DPP_getFirmwareRev(MVME_INTERFACE *mvme, uint32_t base){
   printf("Build date: %d-%d-%d%d\n",2016+year,month,daylow,dayup);
 }
 /**********************************************************************/
-void v1730DPP_SoftwareTrigger(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_SoftwareTrigger(MVME_INTERFACE *mvme, uint32_t base)
+{
   regWrite(mvme, base, V1730DPP_SOFTWARE_TRIGGER, 1);
-  
 }
 /**********************************************************************/
-void v1730DPP_ForceDataFlush(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_ForceDataFlush(MVME_INTERFACE *mvme, uint32_t base)
+{
   regWrite(mvme, base, V1730DPP_FORCE_DATA_FLUSH, 1);
-  
 }
 /**********************************************************************/
-void v1730DPP_SoftReset(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_SoftReset(MVME_INTERFACE *mvme, uint32_t base)
+{
   regWrite(mvme, base, V1730DPP_SOFTWARE_RESET, 1);
-  
 }
 
 /**********************************************************************/
-void v1730DPP_SoftClear(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_SoftClear(MVME_INTERFACE *mvme, uint32_t base)
+{
   regWrite(mvme, base, V1730DPP_SOFTWARE_CLEAR, 1);
-  
 }
 
 /**********************************************************************/
-uint32_t v1730DPP_DataRead(MVME_INTERFACE *mvme, uint32_t base, uint32_t *pdata, uint32_t n32w){
-
-
+uint32_t v1730DPP_DataRead(MVME_INTERFACE *mvme, uint32_t base, uint32_t *pdata, uint32_t n32w)
+{
 
 }
 
 /**********************************************************************/
-void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base)
+{
   // Changed %d's to %u's, since the integers are declared as unsigned. - Will
   uint32_t buf;
   buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
@@ -1571,10 +1684,9 @@ void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base){
     }
   }
 }
-
 /**********************************************************************/
-void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N){
-
+void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
+{
   // This reads qlong for each event and writes it to a file qlong_data.txt
   // N is number of board aggregates: N = 2**(N_b), where N_b is set in setAggregateOrg (3 here, so N=8)
   // AcqCtl Start and Stop sandwiched between this causes the memory location bits to be all 1's.
@@ -1698,10 +1810,9 @@ void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N){
   //printf("Events with max qlong and qshort: %d\n", bad_event_count);
   //printf("Events with only max qlong: %d\n\n", bad_event_count_qlong);
 }
-
 /**********************************************************************/
-void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry){
-
+void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry)
+{
   // This reads qlong for each event 
   uint32_t buffer, qlong, qshort, timetag, chnmask, aggsize, board_aggsize, c, ch, qlong_ch;
   int16_t qlong_signed, qshort_signed;
@@ -1817,10 +1928,9 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
   //----------------------------------------------
   
 }
-
 /**********************************************************************/
-void v1730DPP_PrintMemoryLocations(MVME_INTERFACE *mvme, uint32_t base){
-
+void v1730DPP_PrintMemoryLocations(MVME_INTERFACE *mvme, uint32_t base)
+{
   printf("--------------------------------------------------\n");
   
   for(int i=1; i<8000; i++){ // 2063
@@ -1856,8 +1966,6 @@ void v1730DPP_PrintMemoryLocations(MVME_INTERFACE *mvme, uint32_t base){
   }
   //v1730DPP_AcqCtl(gVme, gV1730Base, V1730DPP_ACQ_STOP);
 }
-
-
 
 /* emacs
  * Local Variables:
