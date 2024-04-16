@@ -1,4 +1,4 @@
-/********************************************************************\
+/********************************************************************************************\
 
   Name:         settings-DPP.dat
   Created by:   W. Fox
@@ -7,11 +7,17 @@
                 File is read and settings are applied by the frontend:
                 fev1730-DPP.cxx. Settings defined in v1730DPP.c.
           
-  Usage:        For settings applied to individual channels, use comma-
-                separated values corresponding to "Enabled Channels".
-                For settings applied to all channels, use a single value.
+  Usage:        Most settings can be applied to either all channels or to individual channels.
+                - To apply a setting to all channels: use a single value.
+                - To apply settings to individual channels: use comma-separated values 
+                  in the same order as "Enabled Channels".
+                - To apply settings to couples (e.g. Ch0 and Ch1 = Couple0, Ch2 and Ch3 = Couple1, etc.)
+                  (only available if setting is specified with a ^): use comma-separated values 
+                  corresponding to only the 1st channel of each couple in "Enabled Channels".
+                Settings with a * indicate they can only be applied to all channels. 
+                Settings with a ^ indicate they can only be applied to either all channels or to couples
 
-\********************************************************************/
+\********************************************************************************************/
 0,1        ## Enabled Channels | 0-15
 700        ## Long gate | ns, main charge integration gate
 400        ## Short gate | ns, extra charge integration gate for pulse shape discrimination
@@ -19,7 +25,7 @@
 0          ## Pre Trigger | ns (mult. of 8), offset before trigger for establishing baseline, if too low, = Gate offset + 38 ns
 0          ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
 1          ## Gain | 0-5, charge/ch, 0 = 5fC, 1 = 20fC, 2 = 80fC, 3 = 320fC, 4 = 1.28pC, 5 = 5.12pC (assuming dynamic range = 2 Vpp)
-0          ## Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
+0          ## *Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
 1          ## negSignals | 1=yes, 0=no
 32767      ## DC Offset | in DAC LSB Units
 3          ## Trigger threshold | in mV
@@ -41,7 +47,8 @@
 0          ## Trigger Hysteresis | 0 = enable (default), 1 = disable, enabling prevents re-triggering on the same pulse
 0          ## Test Pulse Emulator | 0 = disable, 1 = 1 kHz, 2 = 10 kHz, 3 = 100 kHz, 4 = 1 MHz
 
-0          ## Trigger Mode | 0 = Normal (Default), 1 = Coincidence, 2 = Anti-Coincidence (Not available)
-0          ## Trigger Propagation From Motherboard | Single value, 0 = disabled (default), 1 = enabled (required for coincidences)
+0          ## Trigger Mode | 0 = Normal (default), 1 = Coincidence, 2 = Anti-Coincidence (not available)
+0          ## *Trigger Propagation From Motherboard | 0 = disabled (default), 1 = enabled (enabling required for coincidences)
 0          ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
 0          ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode
+4          ## ^Local Trigger Mode | 0-4,how coupled chs trigger,writes to both,0=disable,1=AND,2=Even,3=Odd,4=OR(normal mode default)

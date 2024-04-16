@@ -1479,6 +1479,123 @@ void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t wid
   regWrite(mvme, base, reg, w);
 }
 /**********************************************************************/
+void v1730DPP_setLocalShapedTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  // NOTE: Bits[2:0] set to 1 by default, so they must be cleared before setting
+  //       new values. We need a different procedure than:
+  //         value = value | (mode << bin)
+  //       To first clear bits, use:
+  //         value = value & ~ (mask << bin),
+  //       where bin is the lowest bit to be cleared, e.g. 1111 0000 --> bin = 4
+  //       and mask is the value when the relevant bits are all 1 and are shifted right all the way
+  //       e.g. need to clear bits[6:4], then mask = 0000 0111
+
+  if((mode > 4) | (mode < 0)){
+    printf("ERROR: Mode must be 0 (disabled), 1 (AND), 2 (Even Only), 3 (Odd Only), or 4 (OR)\n");
+    return;
+  }
+
+  // Read the current algorithm control register
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+
+  // Clear bits[2:0], since they are 1 by default
+  uint32_t mask = 0x7; // 0111
+  uint32_t bin = 0;
+  value = value & ~(mask << bin); // xxxx ... x000
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+
+  switch(mode){
+    case 0:
+      printf("Disabled local shaped trigger for all channels\n"); break;
+    default:
+      printf("Enabled local shaped trigger for all channels\n");
+      // Read the current algorithm control register, then enable local shaped trigger setting
+      //uint32_t value = regRead(mvme, base, reg);
+      value = value | 1 << 2;
+      regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+  }
+  
+  if (mode > 0){
+    uint32_t bin;
+    switch(mode){
+      case 1:
+        bin = 0x0; break; // AND
+      case 2:
+        bin = 0x1; break; // Even Only
+      case 3:
+        bin = 0x2; break; // Odd Only
+      case 4:
+        bin = 0x3; break; // OR
+    }
+
+    // Read the current algorithm control register, then add this new local shaped trigger mode
+    uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+    value = value | bin;
+    
+    regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setLocalShapedTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  // NOTE: Bits[2:0] set to 1 by default, so they must be cleared before setting
+  //       new values. We need a different procedure than:
+  //         value = value | (mode << bin)
+  //       To first clear bits, use:
+  //         value = value & ~ (mask << bin),
+  //       where bin is the lowest bit to be cleared, e.g. 1111 0000 --> bin = 4
+  //       and mask is the value when the relevant bits are all 1 and are shifted right all the way
+  //       e.g. need to clear bits[6:4], then mask = 0000 0111
+
+  if((mode > 4) | (mode < 0)){
+    printf("ERROR: Mode must be 0 (disabled), 1 (AND), 2 (Even Only), 3 (Odd Only), or 4 (OR)\n");
+    return;
+  }
+
+  // Channel mask
+  uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (channel << 8);
+
+  // Read the current algorithm control register
+  uint32_t value = regRead(mvme, base, reg);
+
+  // Clear bits[2:0], since they are 1 by default
+  uint32_t mask = 0x7; // 0111
+  uint32_t bin = 0;
+  value = value & ~(mask << bin); // xxxx ... x000
+  regWrite(mvme, base, reg, value);
+
+  switch(mode){
+    case 0:
+      printf("Disabled local shaped trigger for channel %d\n", channel); break;
+    default:
+      printf("Enabled local shaped trigger for channel %d\n", channel);
+      // Read the current algorithm control register, then enable local shaped trigger setting
+      //uint32_t value = regRead(mvme, base, reg);
+      value = value | 1 << 2;
+      regWrite(mvme, base, reg, value);
+  }
+  
+  if (mode > 0){
+    uint32_t bin;
+    switch(mode){
+      case 1:
+        bin = 0x0; break; // AND
+      case 2:
+        bin = 0x1; break; // Even Only
+      case 3:
+        bin = 0x2; break; // Odd Only
+      case 4:
+        bin = 0x3; break; // OR
+    }
+
+    // Read the current algorithm control register, then add this new local shaped trigger mode
+    uint32_t value = regRead(mvme, base, reg);
+    value = value | bin;
+    
+    regWrite(mvme, base, reg, value);
+  }
+}
+/**********************************************************************/
 void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base)
 {
   while(((regRead(mvme, base, V1730DPP_CHANNELN_STATUS) & 0x4)>>2) == 1){

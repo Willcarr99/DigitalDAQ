@@ -53,12 +53,12 @@ extern "C" {
   void v1730DPP_setDCOffset(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset, int channel);
   void v1730DPP_setMeanBaselineCalcG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setMeanBaselineCalc(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
-  void V1730DPP_setFixedBaselineG(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline);
-  void V1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline, int channel);
+  void v1730DPP_setFixedBaselineG(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline);
+  void v1730DPP_setFixedBaseline(MVME_INTERFACE *mvme, uint32_t base, uint32_t baseline, int channel);
   void v1730DPP_setThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold);
   void v1730DPP_setThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t threshold, int channel);
-  void v1730DPP_setChargePedestalG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
-  void v1730DPP_setChargePedestal(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+  void v1730DPP_setChargePedestalG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setChargePedestal(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setChargeZeroSuppressionThresholdG(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh);
   void v1730DPP_setChargeZeroSuppressionThreshold(MVME_INTERFACE *mvme, uint32_t base, uint32_t qthresh, int channel);
   void v1730DPP_setTriggerHoldoffG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width);
@@ -74,8 +74,8 @@ extern "C" {
   void v1730DPP_setTriggerPileup(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setPileUpRejectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setPileUpRejection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
-  void v1730DPP_setOverRangeRejctionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
-  void v1730DPP_setOverRangeRejction(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setOverRangeRejectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setOverRangeRejection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setSelfTriggerAcquisitionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setSelfTriggerAcquisition(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setBaselineCalcRestartG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
@@ -90,14 +90,16 @@ extern "C" {
   void v1730DPP_setPolarity(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_setTriggerHysteresisG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setTriggerHysteresis(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
-  void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
-  void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel);
+  void v1730DPP_setOppositePolarityDetectionG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setOppositePolarityDetection(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
 
-  void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
-  void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, int32_t base, uint32_t mode, int channel);
-  void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, int32_t base, uint32_t mode);
-  void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, int32_t base, uint32_t width);
-  void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, int32_t base, uint32_t width, int channel);
+  void v1730DPP_setTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setTriggerPropagation(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setShapedTriggerG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width);
+  void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel);
+  void v1730DPP_setLocalShapedTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setLocalShapedTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
 
   void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base);

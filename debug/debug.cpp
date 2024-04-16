@@ -178,6 +178,9 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
   v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
   std::cout << std::endl << "--------------------------------------------------" << std::endl;
+
+  if (enableCh.size()==1){std::cout << enableCh[0] << std::endl;}
+  else {for(int i=0; i<enableCh.size(); i++){std::cout << enableCh[i] << std::endl;}}
 }
 
 int main(){
