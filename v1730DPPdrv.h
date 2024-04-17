@@ -100,7 +100,10 @@ extern "C" {
   void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel);
   void v1730DPP_setLocalShapedTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setLocalShapedTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
-
+  void v1730DPP_setLocalTriggerValidationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setLocalTriggerValidationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
+  void v1730DPP_setAdditionalLocalTriggerValidationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setAdditionalLocalTriggerValidationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel);
   void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base);
   void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel);

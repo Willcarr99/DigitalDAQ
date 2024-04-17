@@ -21,6 +21,7 @@ $Id$
 #include <assert.h>
 #include <vector>
 #include <sstream>
+#include <cmath>
 #include "midas.h"
 #include "mfe.h"
 #include "mvmestd.h"
@@ -77,7 +78,7 @@ using namespace std;
 
   void v1730DPP_LoadSettings();
   vector<uint32_t> v1730DPP_str_to_uint32t(string str);
-  void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0);
+  void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0, const vector<int> couple_indices = vector<int>());
 /*-- Bank definitions ----------------------------------------------*/
 
 /*-- Equipment list ------------------------------------------------*/
@@ -244,7 +245,7 @@ vector<uint32_t> v1730DPP_str_to_uint32t(string str)
   return vec;
 }
 
-void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch, int mode)
+void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch, int mode, const vector<int> couple_indices)
 {
   cout << str << " = ";
   for(int i=0; i<v.size(); i++){
@@ -255,8 +256,11 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
     //else if (mode==0 && v.size()==1){
     //  cout << " (All)";
     //}
+    else if (mode==2 && v.size()>1){
+      cout << " (Ch " << ch[couple_indices[i]] << ")";
+    }
     if (v.size()>1 && i<v.size()-1){
-      if (mode==2){
+      if (mode==3){
         cout << "\nERROR: Setting must be applied to all channels. Use a single value." << endl;
         return;
       }
@@ -276,12 +280,14 @@ void v1730DPP_LoadSettings(){
   string cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str, testPulse_str;
   string trigHyst_str, chargePed_str, pileupRej_str, overRangeRej_str, selfTrigAcq_str;
   string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str, localTriggerMode_str;
+  string localTriggerValMode_str, addLocalTriggerValMode_str;
 
   vector<uint32_t> enableCh, tlong, tshort, toffset, preTrig, trigHoldOff, inputSmoothing, meanBaseline;
   vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline, offset;
   vector<uint32_t> cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh, testPulse;
   vector<uint32_t> pileupRej, overRangeRej, selfTrigAcq, chargePed, trigHyst;
   vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig, localTriggerMode;
+  vector<uint32_t> localTriggerValMode, addLocalTriggerValMode;
 
   std::vector<int> couples;
   std::vector<int> couple_indices;
@@ -370,6 +376,15 @@ void v1730DPP_LoadSettings(){
   f >> shapedTrig_str;
   f.ignore(200, '\n');
   f >> localTriggerMode_str;
+  f.ignore(200, '\n');
+  f >> localTriggerValMode_str;
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f >> addLocalTriggerValMode_str;
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
 
   f.close();
 
@@ -407,9 +422,20 @@ void v1730DPP_LoadSettings(){
   trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
   shapedTrig = v1730DPP_str_to_uint32t(shapedTrig_str);
   localTriggerMode = v1730DPP_str_to_uint32t(localTriggerMode_str);
+  localTriggerValMode = v1730DPP_str_to_uint32t(localTriggerValMode_str);
+  addLocalTriggerValMode = v1730DPP_str_to_uint32t(addLocalTriggerValMode_str);
 
   printf("DPP Settings:\n");
   printf("--------------------------------------------------\n\n");
+
+  // Get the couple for each ch and the indices of 1st occurrence in each couple
+  // Important for registers where applying settings to one ch in a couple applies to both
+  for(int i=0; i<enableCh.size(); i++){
+    int couple = (int) std::floor(enableCh[i]/2);
+    couples.push_back(couple);
+    if (i==0){couple_indices.push_back(i);}
+    else if (couple != couples[i-1]){couple_indices.push_back(i);}
+  }
 
   // *****************************************************
   // Print settings
@@ -444,10 +470,12 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(testPulse, "Test Pulse", enableCh);
 
   v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
-  v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 2);
+  v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 3);
   v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
   v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
-  v1730DPP_PrintSettings(localTriggerMode, "Local Shaped Trigger Mode", enableCh);
+  v1730DPP_PrintSettings(localTriggerMode, "Local Shaped Trigger Mode", enableCh, 2, couple_indices);
+  v1730DPP_PrintSettings(localTriggerValMode, "Local Trigger Validation Mode", enableCh, 2, couple_indices);
+  v1730DPP_PrintSettings(addLocalTriggerValMode, "Additional Local Trigger Validation Options", enableCh);
   printf("\n--------------------------------------------------\n");
   
   // *****************************************************
@@ -476,14 +504,8 @@ void v1730DPP_LoadSettings(){
   }
 
   // Enable channels specified in settings
-  // Get the couple for each ch and the indices of 1st occurrence in each couple
-  // Important for registers where applying settings to one ch in a couple applies to both
   for(int i=0; i<enableCh.size(); i++){
     v1730DPP_EnableChannel(gVme, gV1730Base, enableCh[i]);
-    int couple = (int) std::floor(enableCh[i]/2);
-    couples.push_back(couple);
-    if (i==0){couple_indices.push_back(i);}
-    else if (couple != couples[i-1]){couple_indices.push_back(i);}
   }
 
   // *****************************************************
@@ -616,7 +638,7 @@ void v1730DPP_LoadSettings(){
   else {for(int i=0; i<selfTrigAcq.size(); i++){v1730DPP_setSelfTriggerAcquisition(gVme, gV1730Base, selfTrigAcq[i], enableCh[i]);}}
 
   // *****************************************************
-  // Coincidence settings
+  // Online Coincidence settings
   // *****************************************************
 
   // Trigger Mode (Normal or Coincidence)
@@ -643,6 +665,21 @@ void v1730DPP_LoadSettings(){
       v1730DPP_setLocalShapedTriggerMode(gVme, gV1730Base, localTriggerMode[i], enableCh[couple_indices[i]]);
     }
   }
+
+  // Local Trigger Validation Mode | Using couple_indices, applies to 1st ch of each couple
+  if (localTriggerValMode.size()==1){
+    v1730DPP_setLocalTriggerValidationModeG(gVme, gV1730Base, localTriggerValMode[0]);
+  }
+  else{
+    for(int i=0; i<localTriggerValMode.size(); i++){
+      v1730DPP_setLocalTriggerValidationMode(gVme, gV1730Base, localTriggerValMode[i], enableCh[couple_indices[i]]);
+    }
+  }
+
+  // Additional Local Trigger Validation Options
+  if (addLocalTriggerValMode.size()==1){v1730DPP_setAdditionalLocalTriggerValidationModeG(gVme, gV1730Base, addLocalTriggerValMode[0]);}
+  else {for(int i=0; i<addLocalTriggerValMode.size(); i++){v1730DPP_setAdditionalLocalTriggerValidationMode(gVme, gV1730Base, addLocalTriggerValMode[i], enableCh[i]);}}
+
 }
 
 INT init_vme_modules()

@@ -1566,9 +1566,9 @@ void v1730DPP_setLocalShapedTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uin
 
   switch(mode){
     case 0:
-      printf("Disabled local shaped trigger for channel %d\n", channel); break;
+      printf("Disabled local shaped trigger for channel %d (and its coupled channel if enabled)\n", channel); break;
     default:
-      printf("Enabled local shaped trigger for channel %d\n", channel);
+      printf("Enabled local shaped trigger for channel %d (and its coupled channel if enabled)\n", channel);
       // Read the current algorithm control register, then enable local shaped trigger setting
       //uint32_t value = regRead(mvme, base, reg);
       value = value | 1 << 2;
@@ -1591,6 +1591,160 @@ void v1730DPP_setLocalShapedTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uin
     // Read the current algorithm control register, then add this new local shaped trigger mode
     uint32_t value = regRead(mvme, base, reg);
     value = value | bin;
+    
+    regWrite(mvme, base, reg, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setLocalTriggerValidationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if((mode > 4) | (mode < 0)){
+    printf("ERROR: Mode must be 0-4. 0 - disabled, 1 - use additional local trigger validation options,\n"); 
+    printf("       2 - val0 = val1 = signal from motherboard mask, 3 - AND (val0 = val1 = trg0 AND trg1),\n");
+    printf("       4 - OR (val0 = val1 = trg0 OR trg1). Option 4 must only be used in normal mode.\n");
+    return;
+  }
+
+  switch(mode){
+    case 0:
+      printf("Disabled local trigger validation for all channels\n"); break;
+    default:
+      printf("Enabled local trigger validation for all channels\n");
+      // Read the current algorithm control register, then enable local trigger validation setting
+      uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+      value = value | 1 << 6;
+      regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+  }
+
+  if (mode > 1){
+    uint32_t bin;
+    switch(mode){
+      case 2:
+        bin = 0x1; break; // val0 = val1 = signal from motherboard mask
+      case 3:
+        bin = 0x2; break; // AND (val0 = val1 = trg0 AND trg1)
+      case 4:
+        bin = 0x3; break; // OR (val0 = val1 = trg0 OR trg1)
+    }
+
+    // Read the current algorithm control register, then add this new local trigger validation mode
+    uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+    value = value | (bin << 4);
+    
+    regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setLocalTriggerValidationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if((mode > 4) | (mode < 0)){
+    printf("ERROR: Mode must be 0-4. 0 - disabled, 1 - use additional local trigger validation options,\n"); 
+    printf("       2 - val0 = val1 = signal from motherboard mask, 3 - AND (val0 = val1 = trg0 AND trg1),\n");
+    printf("       4 - OR (val0 = val1 = trg0 OR trg1). Option 4 must only be used in normal mode.\n");
+    return;
+  }
+
+  switch(mode){
+    case 0:
+      printf("Disabled local trigger validation for channel %d (and its coupled channel if enabled)\n", channel); break;
+    default:
+      printf("Enabled local trigger validation for channel %d (and its coupled channel if enabled)\n", channel);
+      // Channel mask
+      uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (channel << 8);
+      // Read the current algorithm control register
+      uint32_t value = regRead(mvme, base, reg);
+      value = value | 1 << 6;
+      regWrite(mvme, base, reg, value);
+  }
+
+  if (mode > 1){
+    uint32_t bin;
+    switch(mode){
+      case 2:
+        bin = 0x1; break; // val0 = val1 = signal from motherboard mask
+      case 3:
+        bin = 0x2; break; // AND (val0 = val1 = trg0 AND trg1)
+      case 4:
+        bin = 0x3; break; // OR (val0 = val1 = trg0 OR trg1)
+    }
+
+    // Channel mask
+    uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (channel << 8);
+
+    // Read the current algorithm control register, then add this new local trigger validation mode
+    uint32_t value = regRead(mvme, base, reg);
+    value = value | (bin << 4);
+    
+    regWrite(mvme, base, reg, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setAdditionalLocalTriggerValidationModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if((mode > 2) | (mode < 0)){
+    printf("ERROR: Mode must be 0-2. 0 - disabled / options from local trigger validation, 1 - validation from\n");
+    printf("       paired channel AND motherboard, 2 - validation from paired channel OR motherboard.\n");
+    return;
+  }
+
+  switch(mode){
+    case 0:
+      printf("Disabled additional local trigger validation for all channels\n"); break;
+    default:
+      printf("Enabled additional local trigger validation for all channels\n");
+  }
+
+  if (mode > 0){
+    uint32_t bin;
+    switch(mode){
+      case 1:
+        bin = 0x1; break; // validation from paired channel AND motherboard
+      case 2:
+        bin = 0x2; break; // validation from paired channel OR motherboard
+      //case 3:
+      //  bin = 0x3; break; // reserved
+    }
+
+    // Read the current algorithm control register, then add this new additional local trigger validation mode
+    uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+    value = value | (bin << 25);
+    
+    regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setAdditionalLocalTriggerValidationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, int channel)
+{
+  if((mode > 2) | (mode < 0)){
+    printf("ERROR: Mode must be 0-2. 0 - disabled / options from local trigger validation, 1 - validation from\n");
+    printf("       paired channel AND motherboard, 2 - validation from paired channel OR motherboard.\n");
+    return;
+  }
+
+  switch(mode){
+    case 0:
+      printf("Disabled additional local trigger validation for channel %d\n", channel); break;
+    default:
+      printf("Enabled additional local trigger validation for channel %d\n", channel);
+  }
+
+  if (mode > 0){
+    uint32_t bin;
+    switch(mode){
+      case 1:
+        bin = 0x1; break; // validation from paired channel AND motherboard
+      case 2:
+        bin = 0x2; break; // validation from paired channel OR motherboard
+      //case 3:
+      //  bin = 0x3; break; // reserved
+    }
+
+    // Channel mask
+    uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (channel << 8);
+
+    // Read the current algorithm control register, then add this new additional local trigger validation mode
+    uint32_t value = regRead(mvme, base, reg);
+    value = value | (bin << 25);
     
     regWrite(mvme, base, reg, value);
   }
