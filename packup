@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir V1730
+cp Makefile README README.md fev1730.cxx kill_daq.sh setupODB setupODB.com start_daq.sh start_fe.sh sync v1730.c v1730.h v1730drv.h V1730/
+mkdir V1730/analysis
+cp analysis/ReadMIDAS.R analysis/readfunctions.R analysis/FirstPulse.pdf V1730/analysis/
+tar -czvf V1730.tar.gz V1730
+rm -rf V1730

@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Copy the code over to engesbc
+PWD=`pwd`
+
+rsync -av --rsync-path="mkdir -p $PWD && rsync" * engesbc:$PWD/

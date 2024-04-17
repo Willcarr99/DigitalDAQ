@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Run this first
+odbedit -c @setupODB.com
+
