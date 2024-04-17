@@ -426,7 +426,7 @@ void v1730DPP_LoadSettings(){
   addLocalTriggerValMode = v1730DPP_str_to_uint32t(addLocalTriggerValMode_str);
 
   printf("DPP Settings:\n");
-  printf("--------------------------------------------------\n\n");
+  printf("--------------------------------------------------\n");
 
   // Get the couple for each ch and the indices of 1st occurrence in each couple
   // Important for registers where applying settings to one ch in a couple applies to both
@@ -486,10 +486,12 @@ void v1730DPP_LoadSettings(){
   v1730DPP_getFirmwareRev(gVme, gV1730Base);
 
   // Reset the module
-  printf("Reset module\n");
+  printf("Reset module\n\n");
   v1730DPP_SoftReset(gVme, gV1730Base);
   
   sleep(1);
+
+  printf("Settings Log:\n");
 
   v1730DPP_RegisterWrite(gVme, gV1730Base, V1730DPP_BOARD_CONFIG, 0x800C0110); // 0x800C0110
   //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control 2
@@ -499,7 +501,7 @@ void v1730DPP_LoadSettings(){
   v1730DPP_setDynamicRangeG(gVme, gV1730Base, dRange[0]);    //(0 = 2 Vpp)  (1 = 0.5 Vpp)
   
   // Disable all channels
-  for(int i=0; i<15; i++){
+  for(int i=0; i<16; i++){
     v1730DPP_DisableChannel(gVme, gV1730Base, i);
   }
 
@@ -507,6 +509,7 @@ void v1730DPP_LoadSettings(){
   for(uint32_t i=0; i<enableCh.size(); i++){
     v1730DPP_EnableChannel(gVme, gV1730Base, enableCh[i]);
   }
+  printf("\n");
 
   // *****************************************************
   // Apply settings
@@ -734,7 +737,7 @@ INT init_vme_modules()
   v1730DPP_SoftClear(gVme, gV1730Base);
 
   // Get the board and algorithm configs
-  printf("Board config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+  printf("\nBoard config: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
   printf("DPP Algorithm 1 config (ch 0): 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1080));
   printf("DPP Algorithm 2 config (ch 0): 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, 0x1084));
   

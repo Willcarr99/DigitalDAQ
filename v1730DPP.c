@@ -297,7 +297,7 @@ void v1730DPP_setDCOffsetG(MVME_INTERFACE *mvme, uint32_t base, uint32_t offset)
     printf(".");
     sleep(1);
   };
-  printf("\nDone!\n");
+  printf("\nReady to set DC offset!\n");
 
   uint32_t value = regRead(mvme, base, V1730DPP_DC_OFFSET);
   //printf("DC Offset Buffer: %u\n", value);
@@ -659,8 +659,8 @@ void v1730DPP_setPreTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t preTri
 /*****************************************************************/
 void v1730DPP_setGainG(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain)
 {
-  if((gain > 7) | (gain < 0)){
-    printf("ERROR: Gain setting must be between 0 and 7\n");
+  if((gain > 5) | (gain < 0)){
+    printf("ERROR: Gain setting must be between 0 and 5\n");
     return;
   }
   uint32_t vRange = regRead(mvme, base, V1730DPP_DYNAMIC_RANGE) & 0x0;
@@ -708,8 +708,8 @@ void v1730DPP_setGainG(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain)
 /*****************************************************************/
 void v1730DPP_setGain(MVME_INTERFACE *mvme, uint32_t base, uint32_t gain, int channel)
 {
-  if((gain > 7) | (gain < 0)){
-    printf("ERROR: Gain setting must be between 0 and 7\n");
+  if((gain > 5) | (gain < 0)){
+    printf("ERROR: Gain setting must be between 0 and 5\n");
     return;
   }
   uint32_t vRange = regRead(mvme, base, (V1730DPP_DYNAMIC_RANGE | channel << 8));
