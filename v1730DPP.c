@@ -1364,9 +1364,9 @@ void v1730DPP_setTriggerMode(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode,
 
   switch(mode){
     case 0:
-      printf("Normal Mode enabled for channel %d: Channel self-triggers independently\n"); break;
+      printf("Normal Mode enabled for channel %d: Channel self-triggers independently\n", channel); break;
     case 1:
-      printf("Coincidence Mode enabled for channel %d: Event saved only when it occurs inside the shaped trigger width\n"); break;
+      printf("Coincidence Mode enabled for channel %d: Event saved only when it occurs inside the shaped trigger width\n", channel); break;
   }
 
   uint32_t bin;
@@ -1764,7 +1764,6 @@ void v1730DPP_CalibrateADC(MVME_INTERFACE *mvme, uint32_t base)
   };
   printf("\nDone!\n");  
 }
-
 /**********************************************************************/
 void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base)
 {
@@ -1774,7 +1773,6 @@ void v1730DPP_waitForReady(MVME_INTERFACE *mvme, uint32_t base)
   };
   printf("\nDone!\n");  
 }
-
 /**********************************************************************/
 void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
 {
@@ -1785,7 +1783,6 @@ void v1730DPP_EnableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
 
   regWrite(mvme, base, V1730DPP_CHANNEL_ENABLE_MASK, value);
 }
-
 /**********************************************************************/
 void v1730DPP_DisableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
 {
@@ -1796,7 +1793,6 @@ void v1730DPP_DisableChannel(MVME_INTERFACE *mvme, uint32_t base, int channel)
 
   regWrite(mvme, base, V1730DPP_CHANNEL_ENABLE_MASK, value);
 }
-
 /**********************************************************************/
 int v1730DPP_isRunning(MVME_INTERFACE *mvme, uint32_t base)
 {
@@ -1829,7 +1825,6 @@ int v1730DPP_EventSize(MVME_INTERFACE *mvme, uint32_t base)
 {
   return regRead(mvme, base, V1730DPP_EVENT_SIZE);
 }
-
 /**********************************************************************/
 int v1730DPP_ReadoutReady(MVME_INTERFACE *mvme, uint32_t base)
 {     
@@ -1904,19 +1899,16 @@ void v1730DPP_SoftReset(MVME_INTERFACE *mvme, uint32_t base)
 {
   regWrite(mvme, base, V1730DPP_SOFTWARE_RESET, 1);
 }
-
 /**********************************************************************/
 void v1730DPP_SoftClear(MVME_INTERFACE *mvme, uint32_t base)
 {
   regWrite(mvme, base, V1730DPP_SOFTWARE_CLEAR, 1);
 }
-
 /**********************************************************************/
-uint32_t v1730DPP_DataRead(MVME_INTERFACE *mvme, uint32_t base, uint32_t *pdata, uint32_t n32w)
-{
-
-}
-
+//uint32_t v1730DPP_DataRead(MVME_INTERFACE *mvme, uint32_t base, uint32_t *pdata, uint32_t n32w)
+//{
+//
+//}
 /**********************************************************************/
 void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base)
 {
