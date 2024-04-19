@@ -1479,6 +1479,37 @@ void v1730DPP_setShapedTrigger(MVME_INTERFACE *mvme, uint32_t base, uint32_t wid
   regWrite(mvme, base, reg, w);
 }
 /**********************************************************************/
+void v1730DPP_setLatencyTimeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width)
+{
+  if(width > 2040){
+    printf("ERROR: Latency time must be less than 2040 ns\n");
+    return;
+  }
+
+  if (width > 0){
+    uint32_t w = (width/8) & 0xFF;
+
+    regWrite(mvme, base, V1730DPP_LATENCY_TIME_G, w);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setLatencyTime(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel)
+{
+  if(width > 2040){
+    printf("ERROR: Latency time must be less than 2040 ns\n");
+    return;
+  }
+
+  if (width > 0){
+    uint32_t w = (width/8) & 0xFF;
+
+    // Channel mask
+    uint32_t reg = V1730DPP_LATENCY_TIME | (channel << 8);
+
+    regWrite(mvme, base, reg, w);
+  }
+}
+/**********************************************************************/
 void v1730DPP_setLocalShapedTriggerModeG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
   // NOTE: Bits[2:0] set to 1 by default, so they must be cleared before setting
@@ -1746,6 +1777,47 @@ void v1730DPP_setAdditionalLocalTriggerValidationMode(MVME_INTERFACE *mvme, uint
     uint32_t value = regRead(mvme, base, reg);
     value = value | (bin << 25);
     
+    regWrite(mvme, base, reg, value);
+  }
+}
+/**********************************************************************/
+void v1730DPP_setTriggerValidationMask(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode, uint32_t couples, int channel)
+{
+  if((mode > 2) | (mode < 0)){
+    printf("ERROR: Mode must be 0-2. 0 = disabled, 1 = OR, 2 = AND.\n");
+    return;
+  }
+
+  // Couple mask
+  int couple = (int) std::floor(channel/2);
+  uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
+
+  switch(mode){
+    case 0:
+      printf("Disabled trigger validation mask for couple %d\n", couple); break;
+    default:
+      printf("Enabled trigger validation mask for couple %d\n", couple);
+  }
+
+  if (mode > 0){
+    uint32_t bin;
+    switch(mode){
+      case 1:
+        bin = 0x0; break; // OR
+      case 2:
+        bin = 0x1; break; // AND
+      //case 3:
+      //  bin = 0x2; break; // Majority
+      //case 4:
+      //  bin = 0x3; break; // reserved
+    }
+
+    // TODO - Verify that Trigger Validation Mask can be read at 0x8180 level address and not 0x1180
+    // TODO - Verify that the bits are 0 by default at register 0x8180.; If not, need to clear them
+    // Read the current register, then add this new trigger validation mask
+    uint32_t value = regRead(mvme, base, reg);
+    value = value | (bin << 8);
+    value = value | (couples & 0xFF);
     regWrite(mvme, base, reg, value);
   }
 }

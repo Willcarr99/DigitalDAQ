@@ -279,15 +279,15 @@ void v1730DPP_LoadSettings(){
   string trigPileUp_str, oppPol_str, restartBaseline_str, offset_str, cGain_str, cThresh_str;
   string cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str, testPulse_str;
   string trigHyst_str, chargePed_str, pileupRej_str, overRangeRej_str, selfTrigAcq_str;
-  string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str, localTriggerMode_str;
-  string localTriggerValMode_str, addLocalTriggerValMode_str;
+  string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str, latTime_str, localTrigMode_str;
+  string localTrigValMode_str, addLocalTrigValMode_str, trigValMask1_str, trigValMask2_str; 
 
   vector<uint32_t> enableCh, tlong, tshort, toffset, preTrig, trigHoldOff, inputSmoothing, meanBaseline;
   vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline, offset;
   vector<uint32_t> cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh, testPulse;
   vector<uint32_t> pileupRej, overRangeRej, selfTrigAcq, chargePed, trigHyst;
-  vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig, localTriggerMode;
-  vector<uint32_t> localTriggerValMode, addLocalTriggerValMode;
+  vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig, latTime, localTrigMode;
+  vector<uint32_t> localTrigValMode, addLocalTrigValMode, trigValMask1, trigValMask2;
 
   std::vector<int> couples;
   std::vector<int> couple_indices;
@@ -375,16 +375,23 @@ void v1730DPP_LoadSettings(){
   f.ignore(200,'\n');
   f >> shapedTrig_str;
   f.ignore(200, '\n');
-  f >> localTriggerMode_str;
+  f >> latTime_str;
   f.ignore(200, '\n');
-  f >> localTriggerValMode_str;
+  f >> localTrigMode_str;
   f.ignore(200, '\n');
-  f.ignore(200, '\n');
-  f.ignore(200, '\n');
-  f >> addLocalTriggerValMode_str;
+  f >> localTrigValMode_str;
   f.ignore(200, '\n');
   f.ignore(200, '\n');
   f.ignore(200, '\n');
+  f >> addLocalTrigValMode_str;
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f >> trigValMask1_str;
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f.ignore(200, '\n');
+  f >> trigValMask2_str;
 
   f.close();
 
@@ -421,9 +428,12 @@ void v1730DPP_LoadSettings(){
   enableTrigProp = v1730DPP_str_to_uint32t(enableTrigProp_str);
   trigCountMode = v1730DPP_str_to_uint32t(trigCountMode_str);
   shapedTrig = v1730DPP_str_to_uint32t(shapedTrig_str);
-  localTriggerMode = v1730DPP_str_to_uint32t(localTriggerMode_str);
-  localTriggerValMode = v1730DPP_str_to_uint32t(localTriggerValMode_str);
-  addLocalTriggerValMode = v1730DPP_str_to_uint32t(addLocalTriggerValMode_str);
+  latTime = v1730DPP_str_to_uint32t(latTime_str);
+  localTrigMode = v1730DPP_str_to_uint32t(localTrigMode_str);
+  localTrigValMode = v1730DPP_str_to_uint32t(localTrigValMode_str);
+  addLocalTrigValMode = v1730DPP_str_to_uint32t(addLocalTrigValMode_str);
+  trigValMask1 = v1730DPP_str_to_uint32t(trigValMask1_str);
+  trigValMask2 = v1730DPP_str_to_uint32t(trigValMask2_str);
 
   printf("DPP Settings:\n");
   printf("--------------------------------------------------\n");
@@ -473,9 +483,12 @@ void v1730DPP_LoadSettings(){
   v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 3);
   v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
   v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
-  v1730DPP_PrintSettings(localTriggerMode, "Local Shaped Trigger Mode", enableCh, 2, couple_indices);
-  v1730DPP_PrintSettings(localTriggerValMode, "Local Trigger Validation Mode", enableCh, 2, couple_indices);
-  v1730DPP_PrintSettings(addLocalTriggerValMode, "Additional Local Trigger Validation Options", enableCh);
+  v1730DPP_PrintSettings(latTime, "Latency Time", enableCh);
+  v1730DPP_PrintSettings(localTrigMode, "Local Shaped Trigger Mode", enableCh, 2, couple_indices);
+  v1730DPP_PrintSettings(localTrigValMode, "Local Trigger Validation Mode", enableCh, 2, couple_indices);
+  v1730DPP_PrintSettings(addLocalTrigValMode, "Additional Local Trigger Validation Options", enableCh);
+  v1730DPP_PrintSettings(trigValMask1, "Trigger Validation Mask 1 (Operation)", enableCh, 2, couple_indices);
+  v1730DPP_PrintSettings(trigValMask2, "Trigger Validation Mask 2 (Couples)", enableCh, 2, couple_indices);
   printf("\n--------------------------------------------------\n");
   
   // *****************************************************
@@ -659,29 +672,56 @@ void v1730DPP_LoadSettings(){
   if (shapedTrig.size()==1){v1730DPP_setShapedTriggerG(gVme, gV1730Base, shapedTrig[0]);}
   else {for(uint32_t i=0; i<shapedTrig.size(); i++){v1730DPP_setShapedTrigger(gVme, gV1730Base, shapedTrig[i], enableCh[i]);}}
 
+  // Latency Time
+  if (latTime.size()==1){v1730DPP_setLatencyTimeG(gVme, gV1730Base, latTime[0]);}
+  else {for(uint32_t i=0; i<latTime.size(); i++){v1730DPP_setLatencyTime(gVme, gV1730Base, latTime[i], enableCh[i]);}}
+
   // Local Shaped Trigger Mode | Using couple_indices, applies to 1st ch of each couple
-  if (localTriggerMode.size()==1){
-    v1730DPP_setLocalShapedTriggerModeG(gVme, gV1730Base, localTriggerMode[0]);
+  if (localTrigMode.size()==1){
+    v1730DPP_setLocalShapedTriggerModeG(gVme, gV1730Base, localTrigMode[0]);
   }
   else{
-    for(uint32_t i=0; i<localTriggerMode.size(); i++){
-      v1730DPP_setLocalShapedTriggerMode(gVme, gV1730Base, localTriggerMode[i], enableCh[couple_indices[i]]);
+    for(uint32_t i=0; i<localTrigMode.size(); i++){
+      v1730DPP_setLocalShapedTriggerMode(gVme, gV1730Base, localTrigMode[i], enableCh[couple_indices[i]]);
     }
   }
 
   // Local Trigger Validation Mode | Using couple_indices, applies to 1st ch of each couple
-  if (localTriggerValMode.size()==1){
-    v1730DPP_setLocalTriggerValidationModeG(gVme, gV1730Base, localTriggerValMode[0]);
+  if (localTrigValMode.size()==1){
+    v1730DPP_setLocalTriggerValidationModeG(gVme, gV1730Base, localTrigValMode[0]);
   }
   else{
-    for(uint32_t i=0; i<localTriggerValMode.size(); i++){
-      v1730DPP_setLocalTriggerValidationMode(gVme, gV1730Base, localTriggerValMode[i], enableCh[couple_indices[i]]);
+    for(uint32_t i=0; i<localTrigValMode.size(); i++){
+      v1730DPP_setLocalTriggerValidationMode(gVme, gV1730Base, localTrigValMode[i], enableCh[couple_indices[i]]);
     }
   }
 
   // Additional Local Trigger Validation Options
-  if (addLocalTriggerValMode.size()==1){v1730DPP_setAdditionalLocalTriggerValidationModeG(gVme, gV1730Base, addLocalTriggerValMode[0]);}
-  else {for(uint32_t i=0; i<addLocalTriggerValMode.size(); i++){v1730DPP_setAdditionalLocalTriggerValidationMode(gVme, gV1730Base, addLocalTriggerValMode[i], enableCh[i]);}}
+  if (addLocalTrigValMode.size()==1){v1730DPP_setAdditionalLocalTriggerValidationModeG(gVme, gV1730Base, addLocalTrigValMode[0]);}
+  else {for(uint32_t i=0; i<addLocalTrigValMode.size(); i++){v1730DPP_setAdditionalLocalTriggerValidationMode(gVme, gV1730Base, addLocalTrigValMode[i], enableCh[i]);}}
+
+  // Trigger Validation Mask (Operation and Couples)
+  if (trigValMask1.size()==1 && trigValMask2.size()==1){
+    for(uint32_t i=0; i<couple_indices.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[0], enableCh[couple_indices[i]]);
+    }
+  }
+  else if (trigValMask1.size()==1 && trigValMask2.size()>1){
+    for(uint32_t i=0; i<trigValMask2.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[i], enableCh[couple_indices[i]]);
+    }
+  }
+  else if (trigValMask1.size()>1 && trigValMask2.size()==1){
+    for(uint32_t i=0; i<trigValMask1.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[0], enableCh[couple_indices[i]]);
+    }
+  }
+  else if (trigValMask1.size() == trigValMask2.size()){
+    for(uint32_t i=0; i<trigValMask1.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[i], enableCh[couple_indices[i]]);
+    }
+  }
+  else{cout << "Error: Trigger Validation Mask settings cannot be applied" << endl;}
 
 }
 

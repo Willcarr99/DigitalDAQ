@@ -47,6 +47,9 @@
 
 #define V1730DPP_SHAPED_TRIGGER_WIDTH_G          0x8070      /* R/W       ; D32 */
 #define V1730DPP_SHAPED_TRIGGER_WIDTH            0x1070      /* R/W       ; D32 */
+#define V1730DPP_LATENCY_TIME_G                  0x806C      /* R/W       ; D32 */
+#define V1730DPP_LATENCY_TIME                    0x106C      /* R/W       ; D32 */
+#define V1730DPP_TRIGGER_VALIDATION_MASK         0x8180      /* R/W       ; D32 */
 
 #define V1730DPP_BOARD_CONFIG                    0x8000      /* R/W       ; D32 */
 #define V1730DPP_ALGORITHM_CONTROL_G             0x8080      /* R/W       ; D32 */

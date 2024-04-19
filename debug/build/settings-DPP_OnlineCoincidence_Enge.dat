@@ -18,12 +18,12 @@
                 Settings with a ^ indicate they can only be applied to either all channels or to couples.
 
 \********************************************************************************************/
-0,1        ## Enabled Channels | 0-15
+0,2,4,6,8,10,12,13        ## Enabled Channels | 0-15 (0=FHE,2=FLE,4=BHE,6=BLE,8=E,10=DE,12=SiE,13=SiDE)
 700        ## Long gate | ns, main charge integration gate
 400        ## Short gate | ns, extra charge integration gate for pulse shape discrimination
 110        ## Gate offset | ns, offset before trigger for long/short gates, Long gate < Short gate < Gate offset
 0          ## Pre Trigger | ns (mult. of 8), offset before trigger for establishing baseline, if too low, = Gate offset + 38 ns
-0          ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
+2000       ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
 1          ## Gain | 0-5, charge/ch, 0 = 5fC, 1 = 20fC, 2 = 80fC, 3 = 320fC, 4 = 1.28pC, 5 = 5.12pC (assuming dynamic range = 2 Vpp)
 0          ## *Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
 1          ## negSignals | 1=yes, 0=no
@@ -47,21 +47,21 @@
 0          ## Trigger Hysteresis | 0 = enable (default), 1 = disable, enabling prevents re-triggering on the same pulse
 0          ## Test Pulse Emulator | 0 = disable, 1 = 1 kHz, 2 = 10 kHz, 3 = 100 kHz, 4 = 1 MHz
 
-0          ## Trigger Mode | 0 = Normal (default), 1 = Coincidence, 2 = Anti-Coincidence (not available)
-0          ## *Trigger Propagation From Motherboard | 0 = disabled (default), 1 = enabled (enabling required for coincidences between couples)
-0          ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
-0          ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode
-0          ## Latency Time | ns, mult. of 8, max 2040 ns, 0 = disable (normal mode), use 72 ns (16 ns) if propagating (not propagating) to motherboard
-4          ## ^Local Trigger Mode | 0-4, how coupled chs send TRG_REQ to motherboard, 0=disable, 1=AND, 2=Even, 3=Odd, 4=OR (normal mode default)
-0          ## ^Local Trigger Validation Mode | 0-4, how coupled chs generate TRG_VAL, 0 = disable, 1 = use additional options (below),
-##                  2 = TRG_VAL0 = TRG_VAL1 = signal from motherboard mask, 3 = AND (TRG_VAL0 = TRG_VAL1 = TRG_REQ0 AND TRG_REQ1),
-##                  4 = OR (TRG_VAL0 = TRG_VAL1 = TRG_REQ0 OR TRG_REQ1). Can only use option 4 in normal mode.
-0          ## Additional Local Trigger Validation Options | 0-2, to enable this use option 1 above, 0 = disable, 1 = validation from
-##                  paired channel AND motherboard, 2 = validation from paired channel OR motherboard. If enabled, there is ~30 ns of 
-##                  transition window between coincidence and not coincidence level. Must be taken into account offline.
-0          ## ^Trigger Validation Mask 1 | how couples generate TRG_VAL, enable if any chs are in coincidence with chs of a different couple,
-##                  0 = disable, 1 = OR, 2 = AND, to specify which chs of each couple participate use Local Trigger Validation Mode,
-##                  to specify which couples participate use Trigger Validation Mask 2
-0          ## ^Trigger Validation Mask 2 | hexadecimal (0 to 0xFF), 0 = disable, set bit[n]=1 to enable coincidence between each couple n (n=0-7),
-##                  use same hex value for each participating couple, e.g. if chs 0,2,4,6,8,10 are enabled and we want coincidences between 
-##                  chs 0,2,4 and chs 6,8 separately, use: 0x7,0x7,0x7,0x18,0x18,0 [0x7 = 0000 0111 (bits[0-2]=1), 0x18 = 0001 1000 (bits[3-4]=1)]
+1,1,1,1,0,1,1,1                ## Trigger Mode | 0 = Normal (default), 1 = Coincidence, 2 = Anti-Coincidence (not available)
+1                              ## *Trigger Propagation From Motherboard | 0 = disabled (default), 1 = enabled (enabling required for coincidences between couples)
+0                              ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
+1000                           ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode
+72,72,72,72,72,72,16,16        ## Latency Time | ns, mult. of 8, max 2040 ns, 0 = disable (normal mode), use 72 ns (16 ns) if propagating (not propagating) to motherboard
+0,0,0,0,2,0,0                  ## ^Local Trigger Mode | 0-4, how coupled chs send TRG_REQ to motherboard, 0=disable, 1=AND, 2=Even, 3=Odd, 4=OR (normal mode default)
+2,2,2,2,0,2,3                  ## ^Local Trigger Validation Mode | 0-4, how coupled chs generate TRG_VAL, 0 = disable, 1 = use additional options (below),
+##                                 2 = TRG_VAL0 = TRG_VAL1 = signal from motherboard mask, 3 = AND (TRG_VAL0 = TRG_VAL1 = TRG_REQ0 AND TRG_REQ1),
+##                                 4 = OR (TRG_VAL0 = TRG_VAL1 = TRG_REQ0 OR TRG_REQ1). Can only use option 4 in normal mode.
+0                              ## Additional Local Trigger Validation Options | 0-2, to enable this use option 1 above, 0 = disable, 1 = validation from
+##                                 paired channel AND motherboard, 2 = validation from paired channel OR motherboard. If enabled, there is ~30 ns of 
+##                                 transition window between coincidence and not coincidence level. Must be taken into account offline.
+2,2,2,2,0,2,0                  ## ^Trigger Validation Mask 1 | how couples generate TRG_VAL, enable if any chs are in coincidence with chs of a different couple,
+##                                 0 = disable, 1 = OR, 2 = AND, to specify which chs of each couple participate use Local Trigger Validation Mode,
+##                                 to specify which couples participate use Trigger Validation Mask 2
+11,12,14,18,0,30,0             ## ^Trigger Validation Mask 2 | hexadecimal (0 to 0xFF - do not include "0x"), 0 = disable, set bit[n]=1 to enable coincidence between
+##                                 each couple n (n=0-7), use same hex value for each participating couple, e.g. if chs 0,2,4,6,8,10 are enabled and we want coincidences 
+##                                 between chs 0,2,4 and chs 6,8 separately, use: 7,7,7,18,18,0 [0x7 = 0000 0111 (bits[0-2]=1), 0x18 = 0001 1000 (bits[3-4]=1)]
