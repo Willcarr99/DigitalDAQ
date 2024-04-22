@@ -2,6 +2,8 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <climits> // For INT_MAX
+#include <cmath>
 
 #include "EngeSort.h"
 #include "TV792Data.hxx"
@@ -13,6 +15,10 @@ std::string EngeSort::sayhello( ) {
 }
 std::string EngeSort::saygoodbye( ) {
   return messages.saygoodbye();
+}
+std::string EngeSort::saysomething(std::string str) {
+  
+  return messages.saysomething(str);
 }
 
 //---------------------------- Settings --------------------------------
@@ -40,8 +46,8 @@ int FPTrigger = iE; // Scintillator (E)
 // Note: Si triggers on EITHER SiE or SiDE
 
 // Coincidence Windows for Focal Plane and Si Detector (in ns)
-int win_ns = 1000;
-int winSi_ns = 1000;
+int win_ns = 2000;
+int winSi_ns = 2000;
 
 // Max value of the timetag, at which point it rolls back to 0
 // Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483648 or 0x7FFFFFFF
@@ -76,7 +82,7 @@ int DEcomp;
 int SiEcomp;
 int SiDEcomp;
 
-const double pSiSlope = 0.3; // TODO - Need to read parameters.dat file with pSiSlope value
+const double pSiSlope = 0.0;
 int SiTotalE;
 int SiTotalEcomp;
 
@@ -97,6 +103,12 @@ bool fTheta = false;
 bool fSiE = false;
 bool fSiDE = false;
 //----------------------------------------------------------------------
+
+std::vector<int> vPos1;
+std::vector<int> vDE;
+std::vector<int> vSiE;
+std::vector<int> vSiDE;
+std::vector<int> vSiTotalE;
 
 // 1D Spectra
 Histogram *hPos1;
@@ -119,6 +131,8 @@ Histogram *hDEvsE;
 Histogram *hPos2vsPos1;
 Histogram *hThetavsPos1;
 
+Histogram *hPos1vsEvt;
+
 Histogram *hSiDEvsSiE;
 
 // Gated Spectra
@@ -127,16 +141,26 @@ Histogram *hPos1_gDEvsPos1_G2;
 Histogram *hPos1_gDEvsE_G1;
 Histogram *hPos1_gDEvsE_G2;
 
+Histogram *hPos1_gPos1vsEvt;
+Histogram *hPos1_gDEvPos1_gPos1vsEvt;
+Histogram *hDEvsPos1_G_Pos1vsEvt;
+
 Histogram *hE_gE_G1;
 
-Histogram *hSiE_G_SiDEvsSiE;
+//Histogram *hSiE_G_SiDEvsSiE;
 Histogram *hSiTotalE_G_SiDEvsSiE;
 Histogram *hSiDEvsSiTotalE_G_SiDEvsSiE;
+
+Histogram *hSiTotalE_G_Pos1vsEvt;
+Histogram *hSiTotalE_G_SiDEvsSiE_G_Pos1vsEvt;
+Histogram *hSiTotalEvsEvt_G_SiDEvsSiE;
 
 // Counters
 int totalCounter=0;
 int gateCounter=0;
+int EventNo=0;
 
+/* // TODO - How do scalers change between v785 and v1730?
 // Scalers
 Scaler *sGates;
 Scaler *sGatesLive;
@@ -149,6 +173,7 @@ Scaler *sBackHE;
 Scaler *sE;
 Scaler *sDE;
 Scaler *BCI;
+*/
 
 void EngeSort::Initialize(){
 
@@ -175,6 +200,8 @@ void EngeSort::Initialize(){
   hPos2vsPos1 = new Histogram("Pos 2 vs Pos 1", Channels2D, 2);
   hThetavsPos1 = new Histogram("Theta vs Pos 1", Channels2D, 2);
 
+  hPos1vsEvt = new Histogram("Pos 1 vs Event", Channels2D, 2);
+
   hSiDEvsSiE = new Histogram("SiDE vs SiE", Channels2D, 2);
 
   //--------------------
@@ -185,11 +212,20 @@ void EngeSort::Initialize(){
   hPos1_gDEvsE_G1 = new Histogram("Pos 1; G-DEvsE-G1", Channels1D, 1);
   hPos1_gDEvsE_G2 = new Histogram("Pos 1; G-DEvsE-G2", Channels1D, 1);
 
+  hPos1_gPos1vsEvt = new Histogram("Pos 1; GPos1vsEvent", Channels1D, 1); // Pos1vsEvent gates incremented in EngeSort::FillEndofRun(), not EngeSort::sort()
+  hPos1_gDEvPos1_gPos1vsEvt = new Histogram("Pos 1; GDEvPos1-G2 + GPos1vsEvent", Channels1D, 1);
+  hDEvsPos1_G_Pos1vsEvt = new Histogram("DE vs Pos1; GPos1vsEvent", Channels2D, 2);
+
   hE_gE_G1 = new Histogram("E; GE-G1", Channels1D, 1);
 
-  hSiE_G_SiDEvsSiE = new Histogram("SiE; G-SiDEvsSiE", Channels1D, 1);
+  //hSiE_G_SiDEvsSiE = new Histogram("SiE; G-SiDEvsSiE", Channels1D, 1);
   hSiTotalE_G_SiDEvsSiE = new Histogram("SiTotE; G-SiDEvsSiE", Channels1D, 1);
   hSiDEvsSiTotalE_G_SiDEvsSiE = new Histogram("SiDEvsSiTotE; G-SiDEvsSiE", Channels2D, 2);
+
+  hSiTotalE_G_Pos1vsEvt = new Histogram("SiTotE; GPos1vsEvent", Channels1D, 1);
+  hSiTotalE_G_SiDEvsSiE_G_Pos1vsEvt = new Histogram("SiTotE; GSiDEvsSiE + GPos1vsEvent", Channels1D, 1);
+
+  hSiTotalEvsEvt_G_SiDEvsSiE = new Histogram("SiTotE vs Event; GSiDEvsSiE", Channels2D, 2);
 
   //--------------------
   // Gates
@@ -199,10 +235,27 @@ void EngeSort::Initialize(){
   hDEvsPos1 -> addGate("DE vs Pos1 Gate 2");
 
   hDEvsE -> addGate("DE vs E Gate 1");
-  hDEvsE -> addGate("DE vs E Gate 2")
+  hDEvsE -> addGate("DE vs E Gate 2");
   
+  hPos1vsEvt -> addGate("Event Gate");
+
   hSiDEvsSiE -> addGate("SiDE vs SiE Gate");
 
+  /*
+  // Loop through and print all histograms
+  for(auto h: Histograms){
+    if(h->getnDims() == 1) {
+      std::cout << "Found a 1D histogram!" << std::endl;
+      h->Print(0,10);
+    } else if(h->getnDims() == 2) {
+      std::cout << "Found a 2D histogram!" << std::endl;
+      h->Print(0,10,0,10);
+    }
+    std::cout << std::endl;
+  }
+  */
+
+  /* // TODO - How do scalers change between v785 and v1730?
   // Build the scalers
   sGates = new Scaler("Total Gates", 0);    // Name, index
   sGatesLive = new Scaler("Total Gates Live", 1);    // Name, index
@@ -216,6 +269,7 @@ void EngeSort::Initialize(){
   sE = new Scaler("E",8);
   sDE = new Scaler("DE",9);
   BCI = new Scaler("BCI",15);
+  */
 
 }
 
@@ -224,8 +278,9 @@ void EngeSort::Initialize(){
 void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
   totalCounter++;
+  EventNo++;
 
-// 32-bit signed integers. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer buffer, so int cast is ok. The MSB is always 0.
+  // 32-bit signed integers. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer buffer, so int cast is ok. The MSB is always 0.
   int ch, time;
 
   // 16-bit signed integers. Qlong is a 16-bit signed integer in a 32-bit unsigned buffer (pg 100-101 of manual).
@@ -246,7 +301,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     time = (int) dADC[i+1];
 
     // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately in FP coincidence window below)
-    if (cDet < Thresh || cDet > Channels1D - 1){dADC[i]=0;} // To move 8192 spike to 0, use >=
+    if (cDet < Thresh || cDet > Channels1D - 1){cDet=0;} // To move 8192 spike to 0, use >=
 
     //------------------- Si Window -------------------
     // Triggering on either SiE or SiDE
@@ -258,16 +313,21 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           fSiE = true;
           SiE = (int) cDet;
           hSiE -> inc(SiE);
+          vSiE.push_back(SiE);
+          vPos1.push_back(0);
+          vDE.push_back(0);
+          vSiDE.push_back(0);
           SiEcomp = (int) std::floor(SiE/8.0); // This maxes out at 1,024
           hSiDEvsSiE -> inc(SiEcomp,SiDEcomp);
           SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
           SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
+          vSiTotalE.push_back(SiTotalE);
 
           Gate &G3 = hSiDEvsSiE -> getGate(0);
           //G3.Print();
           if (G3.inGate(SiEcomp,SiDEcomp)){
             gateCounter++;
-            hSiE_G_SiDEvsSiE -> inc(SiE);
+            //hSiE_G_SiDEvsSiE -> inc(SiE);
             hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
             hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
           }
@@ -277,16 +337,21 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
           fSiDE = true;
           SiDE = (int) cDet;
           hSiDE -> inc(SiDE);
+          vSiDE.push_back(SiDE);
+          vPos1.push_back(0);
+          vDE.push_back(0);
+          vSiE.push_back(0);
           SiDEcomp = (int) std::floor(SiDE/8.0); // This maxes out at 1,024
           hSiDEvsSiE -> inc(SiEcomp,SiDEcomp);
           SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
           SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
+          vSiTotalE.push_back(SiTotalE);
 
           Gate &G3 = hSiDEvsSiE -> getGate(0);
           //G3.Print();
           if (G3.inGate(SiEcomp,SiDEcomp)){
             gateCounter++;
-            hSiE_G_SiDEvsSiE -> inc(SiE);
+            //hSiE_G_SiDEvsSiE -> inc(SiE);
             hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
             hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
           }
@@ -299,6 +364,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         if (ch == iSiE){
           SiE = (int) cDet;
           hSiE -> inc(SiE); // TODO - Do we want this to increment even if no coincidence?
+          vSiE.push_back(SiE);
+          vPos1.push_back(0);
+          vDE.push_back(0);
+          vSiDE.push_back(0);
+          vSiTotalE.push_back(0);
           SiEcomp = (int) std::floor(SiE/8.0);
           fSiE = true;
           fSiDE = false;
@@ -306,6 +376,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         else if (ch == iSiDE){
           SiDE = (int) cDet;
           hSiDE -> inc(SiDE); // TODO - Do we want this to increment even if no coincidence?
+          vSiDE.push_back(SiDE);
+          vPos1.push_back(0);
+          vDE.push_back(0);
+          vSiE.push_back(0);
+          vSiTotalE.push_back(0);
           SiDEcomp = (int) std::floor(SiDE/8.0);
           fSiDE = true;
           fSiE = false;
@@ -324,10 +399,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             FrontHE = time;
             if (fFrontLE){ // Pos1 HE and LE coincidence
               Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096).
+              if(Pos1 < Thresh || Pos1 > Channels1D - 1){Pos1=0;}
               hPos1 -> inc(Pos1);
+              vPos1.push_back(Pos1);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0);
+              Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
               
               // E vs Pos1
               hEvsPos1 -> inc(Pos1comp,Ecomp);
@@ -377,10 +459,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             FrontLE = time;
             if (fFrontHE){ // Pos1 HE and LE coincidence
               Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+              if(Pos1 < Thresh || Pos1 > Channels1D - 1){Pos1=0;}
               hPos1 -> inc(Pos1);
+              vPos1.push_back(Pos1);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0);
+              Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
 
               // E vs Pos1
               hEvsPos1 -> inc(Pos1comp,Ecomp);
@@ -430,10 +519,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             BackHE = time;
             if (fBackLE){
               Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+              if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
               hPos2 -> inc(Pos2);
+              vPos1.push_back(0);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0);
+              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
 
               // Pos2 vs Pos1
               if (fFrontHE && fFrontLE){
@@ -447,10 +543,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             BackLE = time;
             if (fBackHE){
               Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+              if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
               hPos2 -> inc(Pos2);
+              vPos1.push_back(0);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0);
+              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
 
               // Pos2 vs Pos1
               if (fFrontHE && fFrontLE){
@@ -463,6 +566,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             fDE = true;
             DE = (int) cDet;
             hDE -> inc(DE);
+            vDE.push_back(DE);
+            vPos1.push_back(0);
+            vSiE.push_back(0);
+            vSiDE.push_back(0);
+            vSiTotalE.push_back(0);
             DEcomp = (int) std::floor(DE/8.0);
 
             // DE vs E
@@ -507,6 +615,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             fE = true;
             E = (int) cDet;
             hE -> inc(E);
+            vPos1.push_back(0);
+            vDE.push_back(0);
+            vSiE.push_back(0);
+            vSiDE.push_back(0);
+            vSiTotalE.push_back(0);
             Ecomp = (int) std::floor(E/8.0);
 
             // E Gate
@@ -552,10 +665,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
               FrontLE = time;
             }
             Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+            if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
             hPos1 -> inc(Pos1);
+            vPos1.push_back(Pos1);
+            vDE.push_back(0);
+            vSiE.push_back(0);
+            vSiDE.push_back(0);
+            vSiTotalE.push_back(0);
             // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
             // TODO - Should I just compress this similar to other 2D histograms?
-            Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0);
+            Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+            //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
 
             // E vs Pos1
             if (fE){
@@ -608,9 +728,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             BackHE = time;
             if (fBackLE){
               Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+              if(Pos2 < Thresh || Pos2 > Channels1D/2.0){Pos2=0;}
+              hPos2 -> inc(Pos2);
+              vPos1.push_back(0);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0);
+              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
 
               // Pos2 vs Pos1
               if (fFrontHE && fFrontLE){
@@ -624,9 +752,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             BackLE = time;
             if (fBackHE){
               Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
+              if(Pos2 < Thresh || Pos2 > Channels1D/2.0){Pos2=0;}
+              hPos2 -> inc(Pos2);
+              vPos1.push_back(0);
+              vDE.push_back(0);
+              vSiE.push_back(0);
+              vSiDE.push_back(0);
+              vSiTotalE.push_back(0);
               // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
               // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0);
+              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
+              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
 
               // Pos2 vs Pos1
               if (fFrontHE && fFrontLE){
@@ -639,6 +775,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
             fDE = true;
             DE = (int) cDet;
             hDE -> inc(DE);
+            vDE.push_back(DE);
+            vPos1.push_back(0);
+            vSiE.push_back(0);
+            vSiDE.push_back(0);
+            vSiTotalE.push_back(0);
             DEcomp = (int) std::floor(DE/8.0);
 
             if (fFrontHE && fFrontLE){
@@ -709,6 +850,11 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         if (FPTrigger == iE){ // E Trigger
           E = (int) cDet;
           hE -> inc(E);
+          vPos1.push_back(0);
+          vDE.push_back(0);
+          vSiE.push_back(0);
+          vSiDE.push_back(0);
+          vSiTotalE.push_back(0);
           Ecomp = (int) std::floor(E/8.0);
           fE = true;
           fDE = false;
@@ -771,6 +917,124 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 }
 //======================================================================
 
+void EngeSort::FillEndOfRun(int nEvents){
+
+  // TODO - Verify nEvents is correct. Should be nADC/2?
+  //        But the v785 version of fTotalEventCounter increments every sort routine call
+
+  int nEventsInGate_P1 = 0;
+  int nEventsInGate_Si = 0;
+  int nEvents_P1 = 0;
+  int nEvents_Si = 0;
+  double fracEventsInGate_P1 = 0;
+  double fracEventsInGate_Si = 0;
+  double fracBCI = 0;
+  bool bPos1vsEventGate = false;
+
+  double EvtCompression = (double)Channels2D/(double)nEvents;
+  double Compression = (double)Channels2D/(double)Channels1D;
+
+  std::cout << "To convert x to event in Pos 1 vs Event spectrum: Event # = x * " <<
+    1/EvtCompression << std::endl;
+
+  for(int i=0; i<nEvents; i++){
+    int e = (int) std::floor(EvtCompression * i);
+    int p = (int) std::floor(Compression * vPos1[i]);
+    int de = (int) std::floor(Compression * vDE[i]);
+    int sie = (int) std::floor(Compression * vSiE[i]);
+    int side = (int) std::floor(Compression * vSiDE[i]);
+    int sitotale = (int) std::floor(Compression * vSiTotalE[i]);
+
+    hPos1vsEvt -> inc(e, p);
+
+    Gate &G4 = hPos1vsEvt->getGate(0);
+    if(G4.inGate(e, p)){
+      gateCounter++;
+      hPos1_gPos1vsEvt->inc(vPos1[i]); // Pos1
+      hDEvsPos1_G_Pos1vsEvt->inc(p,de); // DEcomp vs Pos1comp
+      nEventsInGate_P1++;
+      bPos1vsEventGate = true;
+    }
+
+    // Cutting the same events from the SiTotalE spectrum as are cut from the Pos1 spectrum, so the P1 peak / Si peak ratio is consistent.
+    // Trick: Using Pos1vsEvt gate, but checking if (e,sitotale) is in the gate. The y-axis value doesn't matter since the gate spans the entire y-axis.
+    // An alternative solution would be to make a separate histogram of SiTotalE vs Event and gate on this too, 
+    // but this would require the Pos1vsEvent and SiTotalEvsEvent histograms to have identical gates to get the identical events.
+    if(G4.inGate(e, sitotale)){
+      hSiTotalE_G_Pos1vsEvt->inc(vSiTotalE[i]); // SiTotalE
+      nEventsInGate_Si++;
+    }
+
+    Gate &G5 = hDEvsPos1->getGate(1); // Same as G2, which is the default DEvsPos1 for some reason
+    if(G4.inGate(e, p) && G5.inGate(p, de)){ // Double gate - DEvsPos1 and Pos1vsEvent
+      hPos1_gDEvPos1_gPos1vsEvt->inc(vPos1[i]); // Pos1
+    }
+
+    Gate &G6 = hSiDEvsSiE->getGate(0);
+    // Double Gate - SiDEvsSiE and Pos1vsEvent (same trick as above to get Si events in the same gate as Pos1 vs Event)
+    if(G4.inGate(e, sitotale) && G6.inGate(sie, side)){
+      hSiTotalE_G_SiDEvsSiE_G_Pos1vsEvt->inc(vSiTotalE[i]); // SiTotalE
+    }
+
+    if(G6.inGate(sie,side)){
+      hSiTotalEvsEvt_G_SiDEvsSiE->inc(e, sitotale);
+    }
+
+    if(p>0)
+      nEvents_P1++;
+    if(sitotale>0)
+      nEvents_Si++;
+
+  }
+  // Clear vectors
+  vPos1.clear();
+  vDE.clear();
+  vSiE.clear();
+  vSiDE.clear();
+  vSiTotalE.clear();
+
+  Gate &G4 = hPos1vsEvt->getGate(0);
+  if(bPos1vsEventGate){
+    // Be careful not to interpret the min/max event gate channels as the total rectangular gate. 
+    // It's possible (and often necessary) to create two rectangles with a single gate, to cut out more than one region.
+    // This is why getting the fraction of events in the gate is a better strategy to calculate the new BCI, clock, and clocklive,
+    // but the Pos1 and SiTotalE fractions are not identical (they are close). Take the average of these fractions as the new BCI, clock, and clocklive fraction to use.
+    std::cout << "Pos1vsEvent Gate Min/Max Event Chs: " << std::round(G4.getMinx()) << " to " << std::round(G4.getMaxx()) << std::endl;
+    fracEventsInGate_P1 = (double) nEventsInGate_P1 / (double) nEvents_P1;
+    fracEventsInGate_Si = (double) nEventsInGate_Si / (double) nEvents_Si;
+    std::cout << "Number of events in Pos1vsEvent Gate: " << nEventsInGate_P1 << std::endl;
+    std::cout << "Number of events in SiTotalEvsEvent Gate: " << nEventsInGate_Si << std::endl;
+    std::cout << "Total Number of Pos1 Events: " << nEvents_P1 << std::endl;
+    std::cout << "Total Number of SiTotalE Events: " << nEvents_Si << std::endl;
+    std::cout << "Fraction of Events in Pos1vsEvent Gate: " << fracEventsInGate_P1 << std::endl;
+    std::cout << "Fraction of Events in SiTotalEvsEvent Gate: " << fracEventsInGate_Si << std::endl;
+    fracBCI = (fracEventsInGate_P1 + fracEventsInGate_Si) / 2;
+    std::cout << "New BCI, Clock, and Clocklive fraction = " << fracBCI << std::endl;
+  }
+}
+
+/* // TODO - How do scalers change between v785 and v1730?
+// Increment the scalers
+// TODO: make this automatic. If the scaler is
+// defined we should assume that the user wants to increment it
+void EngeSort::incScalers(uint32_t *dSCAL){
+
+  //std::cout << "Incrementing scalers" << std::endl;
+  
+  sGates -> inc(dSCAL);
+  sGatesLive -> inc(dSCAL);
+  sClock-> inc(dSCAL);
+  sClockLive -> inc(dSCAL);
+  sFrontLE -> inc(dSCAL);
+  sFrontHE -> inc(dSCAL);
+  sBackLE -> inc(dSCAL);
+  sBackHE -> inc(dSCAL);
+  sE -> inc(dSCAL);
+  sDE -> inc(dSCAL);
+  BCI -> inc(dSCAL);
+}
+*/
+
 // Connect the analyzer to midas
 int EngeSort::connectMidasAnalyzer(){
 
@@ -791,7 +1055,6 @@ int EngeSort::runMidasAnalyzer(boost::python::list file_list){
     filename += file + " ";
   }
   std::cout << std::endl;
-  
   std::cout << filename << std::endl;
   
   enum { kMaxArgs = 64 };
@@ -800,11 +1063,11 @@ int EngeSort::runMidasAnalyzer(boost::python::list file_list){
 
   char *dup = strdup(filename.c_str());
   char *p2 = strtok(dup, " ");
-  while (p2 && ac < kMaxArgs-1)
-    {
-      av[ac++] = p2;
-      p2=strtok(0, " ");
-    }
+
+  while (p2 && ac < kMaxArgs-1){
+    av[ac++] = p2;
+    p2=strtok(0, " ");
+  }
   av[ac]=0;
   
   Py_BEGIN_ALLOW_THREADS
@@ -870,7 +1133,6 @@ IntVector EngeSort::getScalers(){
   return sclr;
 }
 
-
 np::ndarray EngeSort::getData(){
 
   // Create the matrix to return to python
@@ -885,18 +1147,16 @@ np::ndarray EngeSort::getData(){
   
   // Loop through all histograms and pack the 1D histograms into a numpy matrix
   int i=0;
-  for(auto h: Histograms)
-    {
-      if(h -> getnDims()==1){
-	//h.Print(1000,2000);
-	shape = p::make_tuple(h -> getnChannels());
-	converted[i] = np::from_data(h -> getData1D().data(), dtype, shape, stride, own);
-	i++;
-      }
+  for(auto h: Histograms){
+    if(h -> getnDims()==1){
+	    //h.Print(1000,2000);
+	    shape = p::make_tuple(h -> getnChannels());
+	    converted[i] = np::from_data(h -> getData1D().data(), dtype, shape, stride, own);
+	    i++;
     }
+  }
 
   return converted;
-  
 }
 
 np::ndarray EngeSort::getData2D(){
@@ -918,16 +1178,14 @@ np::ndarray EngeSort::getData2D(){
   int t=0;
   for(auto h: Histograms){
     if(h -> getnDims()==2){
-      for (int i = 0; i < h -> getnChannels(); i++)
-	{
-	  shape = p::make_tuple(h -> getnChannels());
-	  converted[t][i] = np::from_data(h -> getData2D()[i].data(), dtype, shape, stride, own);
-	}
+      for (int i = 0; i < h -> getnChannels(); i++){
+	      shape = p::make_tuple(h -> getnChannels());
+	      converted[t][i] = np::from_data(h -> getData2D()[i].data(), dtype, shape, stride, own);
+	    }
       t++;
     }
   }
   return converted;
-  
 }
 
 StringVector EngeSort::getGateNames(std::string hname){
@@ -940,8 +1198,8 @@ StringVector EngeSort::getGateNames(std::string hname){
       //std::cout << "Hist: " << hname << " has " << h -> getNGates() << " gates" << std::endl;
       // Make sure this histogram has gates defined
       for(int i=0; i< (h -> getNGates()); i++){
-	    Gate G1 = h->getGate(i);
-	    gname.push_back(G1.getName());
+	      Gate G1 = h->getGate(i);
+	      gname.push_back(G1.getName());
       }
     }
   }
@@ -959,29 +1217,28 @@ void EngeSort::putGate(std::string name, std::string gname, p::list x, p::list y
       //std::cout << "Found the histogram! With name: " << h->getName() << std::endl;
 
       // Make sure this histogram has gates defined
-      //if(h -> getNGates() > 0){
+      //if(h -> getNGates() > 0){}
       //std::cout << "Yes, this histogram has gates!" << std::endl;
       for(int ig = 0; ig < (h -> getNGates()); ig++){
-	Gate &G1 = h->getGate(ig);
-	if(G1.getName() == gname){
+	      Gate &G1 = h->getGate(ig);
+	      if(G1.getName() == gname){
 
-	  G1.Clear();
-	  //G1.Print();
+	        G1.Clear();
+	        //G1.Print();
 
-	  p::ssize_t len = p::len(x);
-	  // Make a vector for the gate
-	  for(int i=0; i<len; i++){
-	    std::vector<double> tmp;
-	    tmp.push_back(p::extract<double>(x[i]));
-	    tmp.push_back(p::extract<double>(y[i]));
-	    G1.addVertex(tmp);
-	  }
-	  //G1.Print();
-	}
+	        p::ssize_t len = p::len(x);
+	        // Make a vector for the gate
+	        for(int i=0; i<len; i++){
+	          std::vector<double> tmp;
+	          tmp.push_back(p::extract<double>(x[i]));
+	          tmp.push_back(p::extract<double>(y[i]));
+	          G1.addVertex(tmp);
+	        }
+	        //G1.Print();
+	      }
       }
     }
   }
-  
 }
 
 void EngeSort::ClearData(){
@@ -989,6 +1246,12 @@ void EngeSort::ClearData(){
   for(auto h:Histograms){
     h->Clear();
   }
+
+ /*
+  for(auto Sclr: Scalers){
+    Sclr -> Clear();
+  }
+ */
   
   totalCounter=0;
   gateCounter=0;
@@ -1011,8 +1274,9 @@ void MidasAnalyzerModule::Init(const std::vector<std::string> &args){
 }
 void MidasAnalyzerModule::Finish(){
   printf("Finish!");
-  printf("Counted %d events\n",fTotalEventCounter);
-  std::cout << "number of spectra: " << eA->getSpectrumNames().size() << std::endl;
+  eA->FillEndOfRun(fTotalEventCounter);
+  //printf("Counted %d events\n",fTotalEventCounter);
+  //std::cout << "number of spectra: " << eA->getSpectrumNames().size() << std::endl;
   eA->setIsRunning(false);
 }
 TARunObject* MidasAnalyzerModule::NewRunObject(TARunInfo* runinfo){
@@ -1034,13 +1298,13 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
     TMBank* bTDC = event->FindBank("TDC1");
     uint32_t* dTDC = (uint32_t*)event->GetBankData(bTDC);
 
-    //    printf("V1730 Bank: Name = %s, Type = %d, Size = %d\n",&bADC->name[0],
-    //	   bADC->type,bADC->data_size); 
+    // printf("V1730 Bank: Name = %s, Type = %d, Size = %d\n",&bADC->name[0],
+    // bADC->type,bADC->data_size); 
 
-    uint64_t dat;
-    dat = dADC[0] & 0xFFFF;
-    //  printf("dADC[0] = 0x%x\n",dat);
-    //  printf("dADC[0] = %d\n",dat);
+    // uint64_t dat;
+    // dat = dADC[0] & 0xFFFF;
+    // printf("dADC[0] = 0x%x\n",dat);
+    // printf("dADC[0] = %d\n",dat);
 
     int singleADCSize = 0;
     int singleTDCSize = 0;
@@ -1050,20 +1314,28 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
     // Find the size of the data
     int nADC = 0;
     int nTDC = 0;
-    if(bADC)nADC=(bADC->data_size - 2)/singleADCSize;
+    if(bADC)nADC=(bADC->data_size - 2)/singleADCSize; // TODO - Why data_size - 2? Ch Agg headers? These are already removed
     if(bTDC)nTDC=(bTDC->data_size - 2)/singleTDCSize;
 
     //std::cout << "nADC = " << nADC << " nTDC = " << nTDC << std::endl;
-    
   
     fRunEventCounter++;
-    fModule->fTotalEventCounter++;
+    //fModule->fTotalEventCounter++;
+    fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
     fModule->eA->sort(dADC, nADC, dTDC, nTDC);
 
   } else if(event->event_id == 2){
 
+    // TODO - How do scalers change between v785 and v1730?
     std::cout << "This is a scaler event. It should never happen!" << std::endl;
 
+    /*
+    // Get the Scaler Bank
+    TMBank* bSCAL = event->FindBank("SCLR");
+    uint32_t *dSCAL = (uint32_t*)event->GetBankData(bSCAL);
+
+    fModule->eA->incScalers(dSCAL);
+    */
   }
     
   return flow;
@@ -1076,15 +1348,41 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
 
 void MidasAnalyzerRun::BeginRun(TARunInfo* runinfo){
   printf("Begin run %d\n",runinfo->fRunNo);
-  time_t run_start_time = 0; // runinfo->fOdb->odbReadUint32("/Runinfo/Start time binary", 0, 0);
-  printf("ODB Run start time: %d: %s", (int)run_start_time, ctime(&run_start_time));
+  //time_t run_start_time = 0; // runinfo->fOdb->odbReadUint32("/Runinfo/Start time binary", 0, 0);
+  //printf("ODB Run start time: %d: %s", (int)run_start_time, ctime(&run_start_time));
+
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+
+  std::cout << "Start time = " << std::ctime(&start_time) << "\n";
+  //  time_t run_start_time = run_start_time_binary;
+  //  printf("ODB Run start time: %s\n",  run_start_time);
+
+  // Read the parameters
+  std::ifstream infile;
+  infile.open("Parameters.dat",std::ifstream::in);
+  
+  infile >> pSiSlope;
+  infile.close();
+
+  printf("Silicon slope = %f\n",pSiSlope);
 
   fRunEventCounter = 0;
 }
+
 void MidasAnalyzerRun::EndRun(TARunInfo* runinfo){
   printf("End run %d\n",runinfo->fRunNo);
   printf("Counted %d events\n",fRunEventCounter);
-  std::cout << "Total counts: " << totalCounter << "   Gated counts: " << gateCounter << std::endl;
+  //std::cout << "Total counts: " << totalCounter << "   Gated counts: " << gateCounter << std::endl;
+
+  //  time_t run_stop_time = runinfo->fOdb->odbReadUint32("/Runinfo/Stop time binary", 0, 0);
+  //printf("ODB Run stop time: %d: %s", (int)run_stop_time, ctime(&run_stop_time));
+
+  auto stop = std::chrono::system_clock::now();
+  std::time_t stop_time = std::chrono::system_clock::to_time_t(stop);
+  std::cout << "Stop time = " << std::ctime(&stop_time) << "\n";
+
+  printf("BCI was %d\n",fModule->eA->getScalers()[10]);
 }
 
 BOOST_PYTHON_MODULE(EngeSort)
@@ -1111,6 +1409,7 @@ BOOST_PYTHON_MODULE(EngeSort)
   class_<EngeSort>("EngeSort")
     .def("sayhello", &EngeSort::sayhello)          // string
     .def("saygoodbye", &EngeSort::saygoodbye)          // string
+    .def("saysomething", &EngeSort::saysomething)      // string
     .def("Initialize", &EngeSort::Initialize)          // void
     .def("connectMidasAnalyzer", &EngeSort::connectMidasAnalyzer) // int
     .def("runMidasAnalyzer", &EngeSort::runMidasAnalyzer) // int
@@ -1122,8 +1421,8 @@ BOOST_PYTHON_MODULE(EngeSort)
     .def("getIsRunning", &EngeSort::getIsRunning)        // bool value
     .def("getScalerNames", &EngeSort::getScalerNames)     // string vector
     .def("getScalers", &EngeSort::getScalers)             // IntVector of scaler values
-    .def("ClearData", &EngeSort::ClearData)        // void
     .def("getGateNames", &EngeSort::getGateNames)             // string vector of gate names
+    .def("ClearData", &EngeSort::ClearData)        // void
     .def("putGate", &EngeSort::putGate)            // void
     .def("data", range(&EngeSort::begin, &EngeSort::end))
     //    .def("Histogram1D", &Histogram1D::Histogram1D)

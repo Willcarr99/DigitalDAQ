@@ -6,8 +6,6 @@
 #include <random>
 #include <string>
 #include <thread>
-#include <iostream>
-#include <fstream>
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
@@ -26,6 +24,7 @@ typedef std::vector<std::string> StringVector;
 typedef std::vector<bool> BoolVector;
 typedef std::vector<int> IntVector;
 
+
 //class EngeAnalyzer: public TRootanaEventLoop {
 class EngeSort {
  public:
@@ -37,7 +36,8 @@ class EngeSort {
   std::string saysomething(std::string mesg);
   void Initialize();
   void ClearData();
-  
+  void SimulateData();
+
   // Connect the midas analyzer
   int connectMidasAnalyzer();
   int runMidasAnalyzer(boost::python::list file_list);
@@ -48,7 +48,7 @@ class EngeSort {
 
   void sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC);
   void FillEndOfRun(int nEvents);
-  // void incScalers(uint32_t *dSCAL);
+  void incScalers(uint32_t *dSCAL);
   
   BoolVector getis2Ds();
   IntVector getNGates();
@@ -59,6 +59,7 @@ class EngeSort {
 
   void setIsRunning(bool isr){isRunning = isr;}
   bool getIsRunning(){return isRunning;}
+
   
   // Gate passing
   void putGate(std::string name, std::string gname, p::list x, p::list y);
@@ -73,6 +74,11 @@ class EngeSort {
   
   
  private:
+
+  // The analyzer module
+  //MidasAnalyzerModule mAMod;
+
+  
   bool isRunning = false;
 
   std::vector<int> Dat[2];
@@ -85,6 +91,9 @@ class EngeSort {
   //  std::vector<std::vector<std::vector<double>>> GateCollection;
   std::vector<Gate> GateCollection;
 
+  // Scaler list
+  //std::vector<int> Scalers;
+  
   // Some counters
   int ipeak1 = 0;
   int ipeak2 = 0;
@@ -104,7 +113,7 @@ class MidasAnalyzerModule: public TAFactory{
   int fTotalEventCounter;
   EngeSort *eA;
 };
-  
+
 MidasAnalyzerModule mAMod;
 
 class MidasAnalyzerRun: public TARunObject{
