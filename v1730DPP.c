@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <iostream>
 #include <fstream>
 #include <errno.h>
@@ -1789,7 +1790,7 @@ void v1730DPP_setTriggerValidationMask(MVME_INTERFACE *mvme, uint32_t base, uint
   }
 
   // Couple mask
-  int couple = (int) std::floor(channel/2);
+  int couple = (int) floor(channel/2); // From <math.h>
   uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
 
   switch(mode){
