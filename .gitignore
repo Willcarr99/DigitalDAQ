@@ -10,18 +10,29 @@
 # Unignore build directories (even when empty)
 !*/build/
 
-# cmake generated files
+# Ignore cmake generated files
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
-Makefile
+#Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
 
+# Unignore all Makefiles
+!Makefile
+
+# Ignore the debug Makefiles (only want main one)
+*/build/Makefile
+
+# Unignore DAQ binaries
 !packup
 !setupODB
 !sync
+
+# Ignore Makefile generated files 
+*.o
+*.exe
