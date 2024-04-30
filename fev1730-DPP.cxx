@@ -76,7 +76,7 @@ using namespace std;
 
   void AllDataClear();
 
-  void v1730DPP_LoadSettings();
+  void v1730DPP_LoadSettings(bool print_settings = true, bool print_default_registers = false, bool print_registers = false);
   vector<uint32_t> v1730DPP_str_to_uint32t(string str);
   void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0, const vector<int> couple_indices = vector<int>());
 /*-- Bank definitions ----------------------------------------------*/
@@ -272,7 +272,7 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
   cout << "" << endl;
 }
 
-void v1730DPP_LoadSettings(){
+void v1730DPP_LoadSettings(bool print_settings, bool print_default_registers, bool print_registers){
   
   string enableCh_str, tlong_str, tshort_str, toffset_str, preTrig_str, trigHoldOff_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
@@ -435,9 +435,6 @@ void v1730DPP_LoadSettings(){
   trigValMask1 = v1730DPP_str_to_uint32t(trigValMask1_str);
   trigValMask2 = v1730DPP_str_to_uint32t(trigValMask2_str);
 
-  printf("DPP Settings:\n");
-  printf("--------------------------------------------------\n");
-
   // Get the couple for each ch and the indices of 1st occurrence in each couple
   // Important for registers where applying settings to one ch in a couple applies to both
   for(uint32_t i=0; i<enableCh.size(); i++){
@@ -451,46 +448,129 @@ void v1730DPP_LoadSettings(){
   // Print settings
   // *****************************************************
 
-  v1730DPP_PrintSettings(enableCh, "Channels Enabled", enableCh, 1);
-  v1730DPP_PrintSettings(tlong, "Long gate", enableCh);
-  v1730DPP_PrintSettings(tshort, "Short gate", enableCh);
-  v1730DPP_PrintSettings(toffset, "Gate offset", enableCh);
-  v1730DPP_PrintSettings(preTrig, "Pre-Trigger", enableCh);
-  v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
-  v1730DPP_PrintSettings(cGain, "Gain", enableCh);
-  v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
-  v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
-  v1730DPP_PrintSettings(cThresh, "Threshold", enableCh);
-  v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
-  v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
-  v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
-  v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
-  v1730DPP_PrintSettings(inputSmoothing, "Input Smoothing", enableCh);
-  v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
-  v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
-  v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
-  v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
-  v1730DPP_PrintSettings(pileupRej, "Pile Up Rejection", enableCh);
-  v1730DPP_PrintSettings(overRangeRej, "Over-Range Rejction", enableCh);
-  v1730DPP_PrintSettings(selfTrigAcq, "Self Trigger Event Acquisition", enableCh);
-  v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
-  v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
-  v1730DPP_PrintSettings(chargePed, "Charge Pedestal", enableCh);
-  v1730DPP_PrintSettings(trigHyst, "Trigger Hysteresis",enableCh);
-  v1730DPP_PrintSettings(testPulse, "Test Pulse", enableCh);
+  if (print_settings){
+    printf("DPP Settings:\n");
+    printf("--------------------------------------------------\n");
 
-  v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
-  v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 3);
-  v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
-  v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
-  v1730DPP_PrintSettings(latTime, "Latency Time", enableCh);
-  v1730DPP_PrintSettings(localTrigMode, "Local Shaped Trigger Mode", enableCh, 2, couple_indices);
-  v1730DPP_PrintSettings(localTrigValMode, "Local Trigger Validation Mode", enableCh, 2, couple_indices);
-  v1730DPP_PrintSettings(addLocalTrigValMode, "Additional Local Trigger Validation Options", enableCh);
-  v1730DPP_PrintSettings(trigValMask1, "Trigger Validation Mask 1 (Operation)", enableCh, 2, couple_indices);
-  v1730DPP_PrintSettings(trigValMask2, "Trigger Validation Mask 2 (Couples)", enableCh, 2, couple_indices);
-  printf("\n--------------------------------------------------\n");
+    v1730DPP_PrintSettings(enableCh, "Channels Enabled", enableCh, 1);
+    v1730DPP_PrintSettings(tlong, "Long gate", enableCh);
+    v1730DPP_PrintSettings(tshort, "Short gate", enableCh);
+    v1730DPP_PrintSettings(toffset, "Gate offset", enableCh);
+    v1730DPP_PrintSettings(preTrig, "Pre-Trigger", enableCh);
+    v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
+    v1730DPP_PrintSettings(cGain, "Gain", enableCh);
+    v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
+    v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
+    v1730DPP_PrintSettings(cThresh, "Threshold", enableCh);
+    v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
+    v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
+    v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
+    v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
+    v1730DPP_PrintSettings(inputSmoothing, "Input Smoothing", enableCh);
+    v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
+    v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
+    v1730DPP_PrintSettings(restartBaseline, "Restart Baseline after Long Gate", enableCh);
+    v1730DPP_PrintSettings(trigPileUp, "Pile Up Counted as Trigger", enableCh);
+    v1730DPP_PrintSettings(pileupRej, "Pile Up Rejection", enableCh);
+    v1730DPP_PrintSettings(overRangeRej, "Over-Range Rejction", enableCh);
+    v1730DPP_PrintSettings(selfTrigAcq, "Self Trigger Event Acquisition", enableCh);
+    v1730DPP_PrintSettings(oppPol, "Detect Opposite Polarity Signals", enableCh);
+    v1730DPP_PrintSettings(chargeThresh, "Charge Zero Suppression Threshold", enableCh);
+    v1730DPP_PrintSettings(chargePed, "Charge Pedestal", enableCh);
+    v1730DPP_PrintSettings(trigHyst, "Trigger Hysteresis",enableCh);
+    v1730DPP_PrintSettings(testPulse, "Test Pulse", enableCh);
+
+    v1730DPP_PrintSettings(trigMode, "Trigger Mode (0=Normal, 1=Coincidence)", enableCh);
+    v1730DPP_PrintSettings(enableTrigProp, "Enable Trigger Propagation (For Coincidences)", enableCh, 3);
+    v1730DPP_PrintSettings(trigCountMode, "Trigger Counting Mode", enableCh);
+    v1730DPP_PrintSettings(shapedTrig, "Shaped Trigger (Coincidence) Width", enableCh);
+    v1730DPP_PrintSettings(latTime, "Latency Time", enableCh);
+    v1730DPP_PrintSettings(localTrigMode, "Local Shaped Trigger Mode", enableCh, 2, couple_indices);
+    v1730DPP_PrintSettings(localTrigValMode, "Local Trigger Validation Mode", enableCh, 2, couple_indices);
+    v1730DPP_PrintSettings(addLocalTrigValMode, "Additional Local Trigger Validation Options", enableCh);
+    v1730DPP_PrintSettings(trigValMask1, "Trigger Validation Mask 1 (Operation)", enableCh, 2, couple_indices);
+    v1730DPP_PrintSettings(trigValMask2, "Trigger Validation Mask 2 (Couples)", enableCh, 2, couple_indices);
+    printf("\n--------------------------------------------------\n");
+  }
   
+  // *****************************************************
+  // Print Default Register Values
+  // *****************************************************
+
+  if(print_default_registers){
+    printf("\n\nDefault Register Values:\n");
+    printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
+      printf("DPP Algorithm Control 1 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (enableCh[i] << 8);
+      printf("DPP Algorithm Control 2 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_RECORD_LENGTH | (enableCh[i] << 8);
+      printf("Record Length (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_LONG_GATE_WIDTH | (enableCh[i] << 8);
+      printf("Long Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_SHORT_GATE_WIDTH | (enableCh[i] << 8);
+      printf("Short Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_GATE_OFFSET | (enableCh[i] << 8);
+      printf("Gate Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_PRE_TRIGGER_WIDTH | (enableCh[i] << 8);
+      printf("Pre-Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_TRIGGER_HOLDOFF | (enableCh[i] << 8);
+      printf("Trigger Hold-Off (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_DC_OFFSET | (enableCh[i] << 8);
+      printf("DC Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_TRIGGER_THRESHOLD | (enableCh[i] << 8);
+      printf("Trigger Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_CFD | (enableCh[i] << 8);
+      printf("CFD Settings (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_DYNAMIC_RANGE | (enableCh[i] << 8);
+      printf("Dynamic Range (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_FIXED_BASELINE | (enableCh[i] << 8);
+      printf("Fixed Baseline (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_CHARGE_THRESHOLD | (enableCh[i] << 8);
+      printf("Charge Zero Suppression Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (enableCh[i] << 8);
+      printf("Shaped Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_LATENCY_TIME | (enableCh[i] << 8);
+      printf("Latency Time (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      int couple = (int) std::floor(enablCh[i]/2);
+      uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
+      printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+  }
+
   // *****************************************************
   // General setup
   // *****************************************************
@@ -722,6 +802,84 @@ void v1730DPP_LoadSettings(){
     }
   }
   else{cout << "Error: Trigger Validation Mask settings cannot be applied" << endl;}
+
+  // *****************************************************
+  // Print Set Register Values
+  // *****************************************************
+
+  if(print_registers){
+    printf("\n\nSet Register Values:\n");
+    printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
+      printf("DPP Algorithm Control 1 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (enableCh[i] << 8);
+      printf("DPP Algorithm Control 2 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_RECORD_LENGTH | (enableCh[i] << 8);
+      printf("Record Length (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_LONG_GATE_WIDTH | (enableCh[i] << 8);
+      printf("Long Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_SHORT_GATE_WIDTH | (enableCh[i] << 8);
+      printf("Short Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_GATE_OFFSET | (enableCh[i] << 8);
+      printf("Gate Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_PRE_TRIGGER_WIDTH | (enableCh[i] << 8);
+      printf("Pre-Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_TRIGGER_HOLDOFF | (enableCh[i] << 8);
+      printf("Trigger Hold-Off (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_DC_OFFSET | (enableCh[i] << 8);
+      printf("DC Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_TRIGGER_THRESHOLD | (enableCh[i] << 8);
+      printf("Trigger Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_CFD | (enableCh[i] << 8);
+      printf("CFD Settings (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_DYNAMIC_RANGE | (enableCh[i] << 8);
+      printf("Dynamic Range (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_FIXED_BASELINE | (enableCh[i] << 8);
+      printf("Fixed Baseline (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_CHARGE_THRESHOLD | (enableCh[i] << 8);
+      printf("Charge Zero Suppression Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (enableCh[i] << 8);
+      printf("Shaped Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      uint32_t reg = V1730DPP_LATENCY_TIME | (enableCh[i] << 8);
+      printf("Latency Time (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+    for(int i=0; i<enableCh.size(); i++){
+      int couple = (int) std::floor(enablCh[i]/2);
+      uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
+      printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));     
+    }
+  }
 
 }
 
