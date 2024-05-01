@@ -272,7 +272,7 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
   cout << "" << endl;
 }
 
-void v1730DPP_LoadSettings(bool print_settings, bool print_default_registers, bool print_registers){
+void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_default, bool print_new){
 
   string enableCh_str, tlong_str, tshort_str, toffset_str, preTrig_str, trigHoldOff_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
