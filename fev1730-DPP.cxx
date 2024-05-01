@@ -494,9 +494,17 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default_registers, bo
   }
 
   // *****************************************************
-  // Print Default Register Values
+  // General setup
   // *****************************************************
 
+  // Is the digitizer working?
+  v1730DPP_getFirmwareRev(gVme, gV1730Base);
+
+  // Reset the module to default register values
+  printf("Reset module\n\n");
+  v1730DPP_SoftReset(gVme, gV1730Base);
+
+  // Print Default Register Values
   if(print_default_registers){
     printf("\n\nDefault Register Values:\n");
     printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
@@ -570,17 +578,6 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default_registers, bo
       printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
   }
-
-  // *****************************************************
-  // General setup
-  // *****************************************************
-
-  // Is the digitizer working?
-  v1730DPP_getFirmwareRev(gVme, gV1730Base);
-
-  // Reset the module
-  printf("Reset module\n\n");
-  v1730DPP_SoftReset(gVme, gV1730Base);
 
   sleep(1);
 
