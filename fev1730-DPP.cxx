@@ -76,7 +76,7 @@ using namespace std;
 
   void AllDataClear();
 
-  void v1730DPP_LoadSettings(bool print_settings = true, bool print_previous = false, bool print_default = false, bool print_new = false);
+  void v1730DPP_LoadSettings(bool print_settings = true, bool print_default = false, bool print_new = false);
   vector<uint32_t> v1730DPP_str_to_uint32t(string str);
   void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector <uint32_t> ch, int mode=0, const vector<int> couple_indices = vector<int>());
 /*-- Bank definitions ----------------------------------------------*/
@@ -272,7 +272,7 @@ void v1730DPP_PrintSettings(vector<uint32_t> v, string str, vector<uint32_t> ch,
   cout << "" << endl;
 }
 
-void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_default, bool print_new){
+void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_new){
 
   string enableCh_str, tlong_str, tshort_str, toffset_str, preTrig_str, trigHoldOff_str;
   string inputSmoothing_str, meanBaseline_str, negSignals_str, dRange_str, discrimMode_str;
@@ -303,7 +303,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
     exit(1);
   }
 
-  printf("Reading settings-DPP.dat...\n\n");
+  printf("\nReading settings-DPP.dat...\n\n");
 
   // Skip header lines
   for(int i=0;i<20;i++){f.ignore(200,'\n');}
@@ -451,7 +451,6 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
   if (print_settings){
     printf("DPP Settings:\n");
     printf("--------------------------------------------------\n");
-
     v1730DPP_PrintSettings(enableCh, "Channels Enabled", enableCh, 1);
     v1730DPP_PrintSettings(tlong, "Long gate", enableCh);
     v1730DPP_PrintSettings(tshort, "Short gate", enableCh);
@@ -466,6 +465,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
     v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
     v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
     v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
+
     v1730DPP_PrintSettings(inputSmoothing, "Input Smoothing", enableCh);
     v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
     v1730DPP_PrintSettings(fixedBaseline, "Fixed Baseline", enableCh);
@@ -490,82 +490,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
     v1730DPP_PrintSettings(addLocalTrigValMode, "Additional Local Trigger Validation Options", enableCh);
     v1730DPP_PrintSettings(trigValMask1, "Trigger Validation Mask 1 (Operation)", enableCh, 2, couple_indices);
     v1730DPP_PrintSettings(trigValMask2, "Trigger Validation Mask 2 (Couples)", enableCh, 2, couple_indices);
-    printf("\n--------------------------------------------------\n");
-  }
-
-  // Print Previous Register Values
-  if(print_previous){
-    printf("\n\nPrevious Register Values:\n");
-    printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 1 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 2 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_RECORD_LENGTH | (enableCh[i] << 8);
-      printf("Record Length (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_LONG_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Long Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_SHORT_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Short Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_GATE_OFFSET | (enableCh[i] << 8);
-      printf("Gate Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_PRE_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Pre-Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_TRIGGER_HOLDOFF | (enableCh[i] << 8);
-      printf("Trigger Hold-Off (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_DC_OFFSET | (enableCh[i] << 8);
-      printf("DC Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_TRIGGER_THRESHOLD | (enableCh[i] << 8);
-      printf("Trigger Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_CFD | (enableCh[i] << 8);
-      printf("CFD Settings (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_DYNAMIC_RANGE | (enableCh[i] << 8);
-      printf("Dynamic Range (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_FIXED_BASELINE | (enableCh[i] << 8);
-      printf("Fixed Baseline (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_CHARGE_THRESHOLD | (enableCh[i] << 8);
-      printf("Charge Zero Suppression Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Shaped Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      uint32_t reg = V1730DPP_LATENCY_TIME | (enableCh[i] << 8);
-      printf("Latency Time (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
-    for(uint32_t i=0; i<enableCh.size(); i++){
-      int couple = (int) std::floor(enableCh[i]/2);
-      uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
-      printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
-    }
+    printf("--------------------------------------------------\n\n");
   }
 
   // *****************************************************
@@ -576,87 +501,91 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
   v1730DPP_getFirmwareRev(gVme, gV1730Base);
 
   // Reset the module to default register values
-  printf("Reset module\n\n");
+  printf("\nReset module...\n\n");
   v1730DPP_SoftReset(gVme, gV1730Base);
 
   // Print Default Register Values (after software reset)
   if(print_default){
-    printf("\n\nDefault Register Values:\n");
-    printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    printf("\nDefault Register Values:\n");
+    printf("--------------------------------------------------\n");
+    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 1 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DPP Algorithm Control 1 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 2 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DPP Algorithm Control 2 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_RECORD_LENGTH | (enableCh[i] << 8);
-      printf("Record Length (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Record Length (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_LONG_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Long Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Long Gate (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_SHORT_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Short Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Short Gate (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_GATE_OFFSET | (enableCh[i] << 8);
-      printf("Gate Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Gate Offset (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_PRE_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Pre-Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Pre-Trigger (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_TRIGGER_HOLDOFF | (enableCh[i] << 8);
-      printf("Trigger Hold-Off (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Hold-Off (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_DC_OFFSET | (enableCh[i] << 8);
-      printf("DC Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DC Offset (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_TRIGGER_THRESHOLD | (enableCh[i] << 8);
-      printf("Trigger Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Threshold (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_CFD | (enableCh[i] << 8);
-      printf("CFD Settings (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("CFD Settings (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_DYNAMIC_RANGE | (enableCh[i] << 8);
-      printf("Dynamic Range (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Dynamic Range (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_FIXED_BASELINE | (enableCh[i] << 8);
-      printf("Fixed Baseline (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Fixed Baseline (Ch %d, Reg): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_CHARGE_THRESHOLD | (enableCh[i] << 8);
-      printf("Charge Zero Suppression Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Charge Zero Suppression Threshold (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Shaped Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Shaped Trigger (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_LATENCY_TIME | (enableCh[i] << 8);
-      printf("Latency Time (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Latency Time (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       int couple = (int) std::floor(enableCh[i]/2);
       uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
-      printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Validation Mask (Couple %d, Reg 0x%x): 0x%x\n", couple, reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
+    printf("--------------------------------------------------\n\n");
   }
 
   sleep(1);
 
   printf("Settings Log:\n");
+  printf("--------------------------------------------------\n");
+
 
   v1730DPP_RegisterWrite(gVme, gV1730Base, V1730DPP_BOARD_CONFIG, 0x800C0110); // 0x800C0110
   //v1730DPP_RegisterWrite(gVme, gV1730Base, 0x8084, 0x); // DPP Algorithm Control 2
@@ -669,6 +598,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
   for(int i=0; i<16; i++){
     v1730DPP_DisableChannel(gVme, gV1730Base, i);
   }
+  printf("\n");
 
   // Enable channels specified in settings
   for(uint32_t i=0; i<enableCh.size(); i++){
@@ -680,54 +610,93 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
   // Apply settings
   // *****************************************************
 
+  // Ensure at least for DPP Algorithm Control 1 and 2, apply broadcast mode settings first
+  // Otherwise, individual settings can be overwritten
+
+  // *** Broadcast mode (All Channels) ***
+
   // Gain
-  if (cGain.size()==1){v1730DPP_setGainG(gVme, gV1730Base, cGain[0]);}
-  else {for(uint32_t i=0; i<cGain.size(); i++){v1730DPP_setGain(gVme, gV1730Base, cGain[i], enableCh[i]);}}
-
+  if(cGain.size()==1){v1730DPP_setGainG(gVme, gV1730Base, cGain[0]);}
   // Input Smoothing
-  if (inputSmoothing.size()==1){v1730DPP_setInputSmoothingG(gVme, gV1730Base, inputSmoothing[0]);}
-  else {for(uint32_t i=0; i<inputSmoothing.size(); i++){v1730DPP_setInputSmoothing(gVme, gV1730Base, inputSmoothing[i], enableCh[i]);}}
-
+  if(inputSmoothing.size()==1){v1730DPP_setInputSmoothingG(gVme, gV1730Base, inputSmoothing[0]);}
   // Polarity
-  if (negSignals.size()==1){v1730DPP_setPolarityG(gVme, gV1730Base, negSignals[0]);}
-  else {for(uint32_t i=0; i<negSignals.size(); i++){v1730DPP_setPolarity(gVme, gV1730Base, negSignals[i], enableCh[i]);}}
-
+  if(negSignals.size()==1){v1730DPP_setPolarityG(gVme, gV1730Base, negSignals[0]);}
   // Mean Baseline Calculation
-  if (meanBaseline.size()==1){v1730DPP_setMeanBaselineCalcG(gVme, gV1730Base, meanBaseline[0]);}
-  else {for(uint32_t i=0; i<meanBaseline.size(); i++){v1730DPP_setMeanBaselineCalc(gVme, gV1730Base, meanBaseline[i], enableCh[i]);}}
-
+  if(meanBaseline.size()==1){v1730DPP_setMeanBaselineCalcG(gVme, gV1730Base, meanBaseline[0]);}
   // Fixed Baseline
-  if (fixedBaseline.size()==1){v1730DPP_setFixedBaselineG(gVme, gV1730Base, fixedBaseline[0]);}
-  else {for(uint32_t i=0; i<fixedBaseline.size(); i++){v1730DPP_setFixedBaseline(gVme, gV1730Base, fixedBaseline[i], enableCh[i]);}}
-
+  if(fixedBaseline.size()==1){v1730DPP_setFixedBaselineG(gVme, gV1730Base, fixedBaseline[0]);}
   // Baseline Calculation Restart
-  if (restartBaseline.size()==1){v1730DPP_setBaselineCalcRestartG(gVme, gV1730Base, restartBaseline[0]);}
-  else {for(uint32_t i=0; i<restartBaseline.size(); i++){v1730DPP_setBaselineCalcRestart(gVme, gV1730Base, restartBaseline[i], enableCh[i]);}}
-
+  if(restartBaseline.size()==1){v1730DPP_setBaselineCalcRestartG(gVme, gV1730Base, restartBaseline[0]);}
   // Opposite Polarity Detection
-  if (oppPol.size()==1){v1730DPP_setOppositePolarityDetectionG(gVme, gV1730Base, oppPol[0]);}
-  else {for(uint32_t i=0; i<oppPol.size(); i++){v1730DPP_setOppositePolarityDetection(gVme, gV1730Base, oppPol[i], enableCh[i]);}}
-
+  if(oppPol.size()==1){v1730DPP_setOppositePolarityDetectionG(gVme, gV1730Base, oppPol[0]);}
   // Charge Zero Suppression Threshold
-  if (chargeThresh.size()==1){v1730DPP_setChargeZeroSuppressionThresholdG(gVme, gV1730Base, chargeThresh[0]);}
-  else {for(uint32_t i=0; i<chargeThresh.size(); i++){v1730DPP_setChargeZeroSuppressionThreshold(gVme, gV1730Base, chargeThresh[i], enableCh[i]);}}
-
+  if(chargeThresh.size()==1){v1730DPP_setChargeZeroSuppressionThresholdG(gVme, gV1730Base, chargeThresh[0]);}
   // Charge Pedestal
-  if (chargePed.size()==1){v1730DPP_setChargePedestalG(gVme, gV1730Base, chargePed[0]);}
-  else {for(uint32_t i=0; i<chargePed.size(); i++){v1730DPP_setChargePedestal(gVme, gV1730Base, chargePed[i], enableCh[i]);}}
-
+  if(chargePed.size()==1){v1730DPP_setChargePedestalG(gVme, gV1730Base, chargePed[0]);}
   // Trigger Hysteresis
-  if (trigHyst.size()==1){v1730DPP_setTriggerHysteresisG(gVme, gV1730Base, trigHyst[0]);}
-  else {for(uint32_t i=0; i<trigHyst.size(); i++){v1730DPP_setTriggerHysteresis(gVme, gV1730Base, trigHyst[i], enableCh[i]);}}
-
+  if(trigHyst.size()==1){v1730DPP_setTriggerHysteresisG(gVme, gV1730Base, trigHyst[0]);}
   // Test Pulse
-  if (testPulse.size()==1){
+  if(testPulse.size()==1){
     if (testPulse[0]>0){
       v1730DPP_setTestPulseG(gVme, gV1730Base, 1);
       v1730DPP_setTestPulseRateG(gVme, gV1730Base, testPulse[0]-1);
     }
   }
-  else {
+  // Discrimination Mode (LED or CFD)
+  if(discrimMode.size()==1){v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);}
+  // Long Gate
+  if(tlong.size()==1){v1730DPP_setLongGateG(gVme, gV1730Base, tlong[0]);}
+  // Short Gate
+  if(tshort.size()==1){v1730DPP_setShortGateG(gVme, gV1730Base, tshort[0]);}
+  // Gate Offset
+  if(toffset.size()==1){v1730DPP_setGateOffsetG(gVme, gV1730Base, toffset[0]);}
+  // Pre Trigger Width
+  if(preTrig.size()==1){v1730DPP_setPreTriggerG(gVme, gV1730Base, preTrig[0]);}
+  // Trigger Holdoff Width
+  if(trigHoldOff.size()==1){v1730DPP_setTriggerHoldoffG(gVme, gV1730Base, trigHoldOff[0]);}
+  // Threshold
+  if(cThresh.size()==1){v1730DPP_setThresholdG(gVme, gV1730Base, cThresh[0]);}
+  // DC Offset
+  if(offset.size()==1){v1730DPP_setDCOffsetG(gVme, gV1730Base, offset[0]);}
+  // Trigger Pile-Up
+  if(trigPileUp.size()==1){v1730DPP_setTriggerPileupG(gVme, gV1730Base, trigPileUp[0]);}
+  // Pile-Up Rejection
+  if(pileupRej.size()==1){v1730DPP_setPileUpRejectionG(gVme, gV1730Base, pileupRej[0]);}
+  // Over-Range Rejection
+  if(overRangeRej.size()==1){v1730DPP_setOverRangeRejectionG(gVme, gV1730Base, overRangeRej[0]);}
+  // Self Trigger Event Acquisition
+  if(selfTrigAcq.size()==1){v1730DPP_setSelfTriggerAcquisitionG(gVme, gV1730Base, selfTrigAcq[0]);}
+
+  // Trigger Mode (Normal or Coincidence)
+  if(trigMode.size()==1){v1730DPP_setTriggerModeG(gVme, gV1730Base, trigMode[0]);}
+  // Enable Trigger Propagation from Motherboard to Mezzanine (all channels)
+  if(enableTrigProp.size()==1){v1730DPP_setTriggerPropagation(gVme, gV1730Base, enableTrigProp[0]);}
+  // Trigger Counting Mode
+  if(trigCountMode.size()==1){v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);}
+  // Shaped Trigger Width (Coincidence Window Width)
+  if(shapedTrig.size()==1){v1730DPP_setShapedTriggerG(gVme, gV1730Base, shapedTrig[0]);}
+  // Latency Time
+  if(latTime.size()==1){v1730DPP_setLatencyTimeG(gVme, gV1730Base, latTime[0]);}
+  // Local Shaped Trigger Mode | Using couple_indices, applies to 1st ch of each couple
+  if(localTrigMode.size()==1){v1730DPP_setLocalShapedTriggerModeG(gVme, gV1730Base, localTrigMode[0]);}
+  // Local Trigger Validation Mode | Using couple_indices, applies to 1st ch of each couple
+  if(localTrigValMode.size()==1){v1730DPP_setLocalTriggerValidationModeG(gVme, gV1730Base, localTrigValMode[0]);}
+  // Additional Local Trigger Validation Options
+  if(addLocalTrigValMode.size()==1){v1730DPP_setAdditionalLocalTriggerValidationModeG(gVme, gV1730Base, addLocalTrigValMode[0]);}
+
+  // *** Individual mode (Each Channel) ***
+
+  if(cGain.size()>1){for(uint32_t i=0; i<cGain.size(); i++){v1730DPP_setGain(gVme, gV1730Base, cGain[i], enableCh[i]);}}
+  if(inputSmoothing.size()>1){for(uint32_t i=0; i<inputSmoothing.size(); i++){v1730DPP_setInputSmoothing(gVme, gV1730Base, inputSmoothing[i], enableCh[i]);}}
+  if(negSignals.size()>1){for(uint32_t i=0; i<negSignals.size(); i++){v1730DPP_setPolarity(gVme, gV1730Base, negSignals[i], enableCh[i]);}}
+  if(meanBaseline.size()>1){for(uint32_t i=0; i<meanBaseline.size(); i++){v1730DPP_setMeanBaselineCalc(gVme, gV1730Base, meanBaseline[i], enableCh[i]);}}
+  if(fixedBaseline.size()>1){for(uint32_t i=0; i<fixedBaseline.size(); i++){v1730DPP_setFixedBaseline(gVme, gV1730Base, fixedBaseline[i], enableCh[i]);}}
+  if(restartBaseline.size()>1){for(uint32_t i=0; i<restartBaseline.size(); i++){v1730DPP_setBaselineCalcRestart(gVme, gV1730Base, restartBaseline[i], enableCh[i]);}}
+  if(oppPol.size()>1){for(uint32_t i=0; i<oppPol.size(); i++){v1730DPP_setOppositePolarityDetection(gVme, gV1730Base, oppPol[i], enableCh[i]);}}
+  if(chargeThresh.size()>1){for(uint32_t i=0; i<chargeThresh.size(); i++){v1730DPP_setChargeZeroSuppressionThreshold(gVme, gV1730Base, chargeThresh[i], enableCh[i]);}}
+  if(chargePed.size()>1){for(uint32_t i=0; i<chargePed.size(); i++){v1730DPP_setChargePedestal(gVme, gV1730Base, chargePed[i], enableCh[i]);}}
+  if(trigHyst.size()>1){for(uint32_t i=0; i<trigHyst.size(); i++){v1730DPP_setTriggerHysteresis(gVme, gV1730Base, trigHyst[i], enableCh[i]);}}
+  if(testPulse.size()>1){
     for(uint32_t i=0; i<testPulse.size(); i++){
       if (testPulse[i]>0){
         v1730DPP_setTestPulse(gVme, gV1730Base, 1, enableCh[i]);
@@ -735,13 +704,54 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
       }
     }
   }
+  if(discrimMode.size()>1){for(uint32_t i=0; i<discrimMode.size(); i++){v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], enableCh[i]);}}
+  if(tlong.size()>1){for(uint32_t i=0; i<tlong.size(); i++){v1730DPP_setLongGate(gVme, gV1730Base, tlong[i], enableCh[i]);}}
+  if(tshort.size()>1){for(uint32_t i=0; i<tshort.size(); i++){v1730DPP_setShortGate(gVme, gV1730Base, tshort[i], enableCh[i]);}}
+  if(toffset.size()>1){for(uint32_t i=0; i<toffset.size(); i++){v1730DPP_setGateOffset(gVme, gV1730Base, toffset[i], enableCh[i]);}}
+  if(preTrig.size()>1){for(uint32_t i=0; i<preTrig.size(); i++){v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], enableCh[i]);}}
+  if(trigHoldOff.size()>1){for(uint32_t i=0; i<trigHoldOff.size(); i++){v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], enableCh[i]);}}
+  if(cThresh.size()>1){for(uint32_t i=0; i<cThresh.size(); i++){v1730DPP_setThreshold(gVme, gV1730Base, cThresh[i], enableCh[i]);}}
+  if(offset.size()>1){for(uint32_t i=0; i<offset.size(); i++){v1730DPP_setDCOffset(gVme, gV1730Base, offset[i], enableCh[i]);}}
+  if(trigPileUp.size()>1){for(uint32_t i=0; i<trigPileUp.size(); i++){v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], enableCh[i]);}}
+  if(pileupRej.size()>1){for(uint32_t i=0; i<pileupRej.size(); i++){v1730DPP_setPileUpRejection(gVme, gV1730Base, pileupRej[i], enableCh[i]);}}
+  if(overRangeRej.size()>1){for(uint32_t i=0; i<overRangeRej.size(); i++){v1730DPP_setOverRangeRejection(gVme, gV1730Base, overRangeRej[i], enableCh[i]);}} 
+  if(selfTrigAcq.size()>1){for(uint32_t i=0; i<selfTrigAcq.size(); i++){v1730DPP_setSelfTriggerAcquisition(gVme, gV1730Base, selfTrigAcq[i], enableCh[i]);}}
 
-  // Discrimination Mode (LED or CFD)
-  if (discrimMode.size()==1){v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);}
-  else {for(uint32_t i=0; i<discrimMode.size(); i++){v1730DPP_setDiscriminationMode(gVme, gV1730Base, discrimMode[i], enableCh[i]);}}
+  if(trigMode.size()>1){for(uint32_t i=0; i<trigMode.size(); i++){v1730DPP_setTriggerMode(gVme, gV1730Base, trigMode[i], enableCh[i]);}} 
+  if(trigCountMode.size()>1){for(uint32_t i=0; i<trigCountMode.size(); i++){v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], enableCh[i]);}}
+  if(shapedTrig.size()>1){for(uint32_t i=0; i<shapedTrig.size(); i++){v1730DPP_setShapedTrigger(gVme, gV1730Base, shapedTrig[i], enableCh[i]);}}
+  if(latTime.size()>1){for(uint32_t i=0; i<latTime.size(); i++){v1730DPP_setLatencyTime(gVme, gV1730Base, latTime[i], enableCh[i]);}}
+  if(localTrigMode.size()>1){for(uint32_t i=0; i<localTrigMode.size(); i++){v1730DPP_setLocalShapedTriggerMode(gVme, gV1730Base, localTrigMode[i], enableCh[couple_indices[i]]);}}
+  if(localTrigValMode.size()>1){for(uint32_t i=0; i<localTrigValMode.size(); i++){v1730DPP_setLocalTriggerValidationMode(gVme, gV1730Base, localTrigValMode[i], enableCh[couple_indices[i]]);}}
+  if(addLocalTrigValMode.size()>1){for(uint32_t i=0; i<addLocalTrigValMode.size(); i++){v1730DPP_setAdditionalLocalTriggerValidationMode(gVme, gV1730Base, addLocalTrigValMode[i], enableCh[i]);}}
+
+  // *** Miscellaneous (Mixture of Modes) ***
+
+  // Trigger Validation Mask (Operation and Couples)
+  if(trigValMask1.size()==1 && trigValMask2.size()==1){
+    for(uint32_t i=0; i<couple_indices.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[0], enableCh[couple_indices[i]]);
+    }
+  }
+  else if(trigValMask1.size()==1 && trigValMask2.size()>1){
+    for(uint32_t i=0; i<trigValMask2.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[i], enableCh[couple_indices[i]]);
+    }
+  }
+  else if(trigValMask1.size()>1 && trigValMask2.size()==1){
+    for(uint32_t i=0; i<trigValMask1.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[0], enableCh[couple_indices[i]]);
+    }
+  }
+  else if(trigValMask1.size() == trigValMask2.size()){
+    for(uint32_t i=0; i<trigValMask1.size(); i++){
+      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[i], enableCh[couple_indices[i]]);
+    }
+  }
+  else{cout << "Error: Trigger Validation Mask settings cannot be applied" << endl;}
 
   // CFD Delay and Fraction
-  if (cCFDDelay.size()==1 && cCFDFraction.size()==1){
+  if(cCFDDelay.size()==1 && cCFDFraction.size()==1){
     v1730DPP_setCFDG(gVme, gV1730Base, cCFDDelay[0], cCFDFraction[0]);
   }
   else if (cCFDDelay.size()==1 && cCFDFraction.size()>1){
@@ -761,196 +771,84 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_previous, bool print_
   }
   else{cout << "Error: CFD Delay and Fraction settings cannot be applied" << endl;}
 
-  // Long Gate
-  if (tlong.size()==1){v1730DPP_setLongGateG(gVme, gV1730Base, tlong[0]);}
-  else {for(uint32_t i=0; i<tlong.size(); i++){v1730DPP_setLongGate(gVme, gV1730Base, tlong[i], enableCh[i]);}}
-
-  // Short Gate
-  if (tshort.size()==1){v1730DPP_setShortGateG(gVme, gV1730Base, tshort[0]);}
-  else {for(uint32_t i=0; i<tshort.size(); i++){v1730DPP_setShortGate(gVme, gV1730Base, tshort[i], enableCh[i]);}}
-
-  // Gate Offset
-  if (toffset.size()==1){v1730DPP_setGateOffsetG(gVme, gV1730Base, toffset[0]);}
-  else {for(uint32_t i=0; i<toffset.size(); i++){v1730DPP_setGateOffset(gVme, gV1730Base, toffset[i], enableCh[i]);}}
-
-  // Pre Trigger Width
-  if (preTrig.size()==1){v1730DPP_setPreTriggerG(gVme, gV1730Base, preTrig[0]);}
-  else {for(uint32_t i=0; i<preTrig.size(); i++){v1730DPP_setPreTrigger(gVme, gV1730Base, preTrig[i], enableCh[i]);}}
-
-  // Trigger Holdoff Width
-  if (trigHoldOff.size()==1){v1730DPP_setTriggerHoldoffG(gVme, gV1730Base, trigHoldOff[0]);}
-  else {for(uint32_t i=0; i<trigHoldOff.size(); i++){v1730DPP_setTriggerHoldoff(gVme, gV1730Base, trigHoldOff[i], enableCh[i]);}}
-
-  // Threshold
-  if (cThresh.size()==1){v1730DPP_setThresholdG(gVme, gV1730Base, cThresh[0]);}
-  else {for(uint32_t i=0; i<cThresh.size(); i++){v1730DPP_setThreshold(gVme, gV1730Base, cThresh[i], enableCh[i]);}}
-
-  // DC Offset
-  if (offset.size()==1){v1730DPP_setDCOffsetG(gVme, gV1730Base, offset[0]);}
-  else {for(uint32_t i=0; i<offset.size(); i++){v1730DPP_setDCOffset(gVme, gV1730Base, offset[i], enableCh[i]);}}
-
-  // Trigger Pile-Up
-  if (trigPileUp.size()==1){v1730DPP_setTriggerPileupG(gVme, gV1730Base, trigPileUp[0]);}
-  else {for(uint32_t i=0; i<trigPileUp.size(); i++){v1730DPP_setTriggerPileup(gVme, gV1730Base, trigPileUp[i], enableCh[i]);}}
-
-  // Pile-Up Rejection
-  if (pileupRej.size()==1){v1730DPP_setPileUpRejectionG(gVme, gV1730Base, pileupRej[0]);}
-  else {for(uint32_t i=0; i<pileupRej.size(); i++){v1730DPP_setPileUpRejection(gVme, gV1730Base, pileupRej[i], enableCh[i]);}}
-
-  // Over-Range Rejection
-  if (overRangeRej.size()==1){v1730DPP_setOverRangeRejectionG(gVme, gV1730Base, overRangeRej[0]);}
-  else {for(uint32_t i=0; i<overRangeRej.size(); i++){v1730DPP_setOverRangeRejection(gVme, gV1730Base, overRangeRej[i], enableCh[i]);}} 
-
-  // Self Trigger Event Acquisition
-  if (selfTrigAcq.size()==1){v1730DPP_setSelfTriggerAcquisitionG(gVme, gV1730Base, selfTrigAcq[0]);}
-  else {for(uint32_t i=0; i<selfTrigAcq.size(); i++){v1730DPP_setSelfTriggerAcquisition(gVme, gV1730Base, selfTrigAcq[i], enableCh[i]);}}
-
   // *****************************************************
-  // Online Coincidence settings
-  // *****************************************************
-
-  // Trigger Mode (Normal or Coincidence)
-  if (trigMode.size()==1){v1730DPP_setTriggerModeG(gVme, gV1730Base, trigMode[0]);}
-  else {for(uint32_t i=0; i<trigMode.size(); i++){v1730DPP_setTriggerMode(gVme, gV1730Base, trigMode[i], enableCh[i]);}} 
-
-  // Enable Trigger Propagation from Motherboard to Mezzanine (all channels)
-  if (enableTrigProp.size()==1){v1730DPP_setTriggerPropagation(gVme, gV1730Base, enableTrigProp[0]);}
-
-  // Trigger Counting Mode
-  if (trigCountMode.size()==1){v1730DPP_setTriggerCountingModeG(gVme, gV1730Base, trigCountMode[0]);}
-  else {for(uint32_t i=0; i<trigCountMode.size(); i++){v1730DPP_setTriggerCountingMode(gVme, gV1730Base, trigCountMode[i], enableCh[i]);}}
-
-  // Shaped Trigger Width (Coincidence Window Width)
-  if (shapedTrig.size()==1){v1730DPP_setShapedTriggerG(gVme, gV1730Base, shapedTrig[0]);}
-  else {for(uint32_t i=0; i<shapedTrig.size(); i++){v1730DPP_setShapedTrigger(gVme, gV1730Base, shapedTrig[i], enableCh[i]);}}
-
-  // Latency Time
-  if (latTime.size()==1){v1730DPP_setLatencyTimeG(gVme, gV1730Base, latTime[0]);}
-  else {for(uint32_t i=0; i<latTime.size(); i++){v1730DPP_setLatencyTime(gVme, gV1730Base, latTime[i], enableCh[i]);}}
-
-  // Local Shaped Trigger Mode | Using couple_indices, applies to 1st ch of each couple
-  if (localTrigMode.size()==1){
-    v1730DPP_setLocalShapedTriggerModeG(gVme, gV1730Base, localTrigMode[0]);
-  }
-  else{
-    for(uint32_t i=0; i<localTrigMode.size(); i++){
-      v1730DPP_setLocalShapedTriggerMode(gVme, gV1730Base, localTrigMode[i], enableCh[couple_indices[i]]);
-    }
-  }
-
-  // Local Trigger Validation Mode | Using couple_indices, applies to 1st ch of each couple
-  if (localTrigValMode.size()==1){
-    v1730DPP_setLocalTriggerValidationModeG(gVme, gV1730Base, localTrigValMode[0]);
-  }
-  else{
-    for(uint32_t i=0; i<localTrigValMode.size(); i++){
-      v1730DPP_setLocalTriggerValidationMode(gVme, gV1730Base, localTrigValMode[i], enableCh[couple_indices[i]]);
-    }
-  }
-
-  // Additional Local Trigger Validation Options
-  if (addLocalTrigValMode.size()==1){v1730DPP_setAdditionalLocalTriggerValidationModeG(gVme, gV1730Base, addLocalTrigValMode[0]);}
-  else {for(uint32_t i=0; i<addLocalTrigValMode.size(); i++){v1730DPP_setAdditionalLocalTriggerValidationMode(gVme, gV1730Base, addLocalTrigValMode[i], enableCh[i]);}}
-
-  // Trigger Validation Mask (Operation and Couples)
-  if (trigValMask1.size()==1 && trigValMask2.size()==1){
-    for(uint32_t i=0; i<couple_indices.size(); i++){
-      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[0], enableCh[couple_indices[i]]);
-    }
-  }
-  else if (trigValMask1.size()==1 && trigValMask2.size()>1){
-    for(uint32_t i=0; i<trigValMask2.size(); i++){
-      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[0], trigValMask2[i], enableCh[couple_indices[i]]);
-    }
-  }
-  else if (trigValMask1.size()>1 && trigValMask2.size()==1){
-    for(uint32_t i=0; i<trigValMask1.size(); i++){
-      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[0], enableCh[couple_indices[i]]);
-    }
-  }
-  else if (trigValMask1.size() == trigValMask2.size()){
-    for(uint32_t i=0; i<trigValMask1.size(); i++){
-      v1730DPP_setTriggerValidationMask(gVme, gV1730Base, trigValMask1[i], trigValMask2[i], enableCh[couple_indices[i]]);
-    }
-  }
-  else{cout << "Error: Trigger Validation Mask settings cannot be applied" << endl;}
-
-  // *****************************************************
-  // Print Set Register Values
+  // Print New Register Values
   // *****************************************************
 
   if(print_new){
-    printf("\n\nSet Register Values:\n");
-    printf("Board Configuration: 0x%x\n", v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    printf("\n\nNew Register Values:\n");
+    printf("--------------------------------------------------\n");
+    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 1 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DPP Algorithm Control 1 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL2 | (enableCh[i] << 8);
-      printf("DPP Algorithm Control 2 (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DPP Algorithm Control 2 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_RECORD_LENGTH | (enableCh[i] << 8);
-      printf("Record Length (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Record Length (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_LONG_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Long Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Long Gate (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_SHORT_GATE_WIDTH | (enableCh[i] << 8);
-      printf("Short Gate (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Short Gate (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_GATE_OFFSET | (enableCh[i] << 8);
-      printf("Gate Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Gate Offset (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_PRE_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Pre-Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Pre-Trigger (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_TRIGGER_HOLDOFF | (enableCh[i] << 8);
-      printf("Trigger Hold-Off (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Hold-Off (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_DC_OFFSET | (enableCh[i] << 8);
-      printf("DC Offset (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("DC Offset (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_TRIGGER_THRESHOLD | (enableCh[i] << 8);
-      printf("Trigger Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Threshold (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_CFD | (enableCh[i] << 8);
-      printf("CFD Settings (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("CFD Settings (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_DYNAMIC_RANGE | (enableCh[i] << 8);
-      printf("Dynamic Range (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Dynamic Range (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_FIXED_BASELINE | (enableCh[i] << 8);
-      printf("Fixed Baseline (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Fixed Baseline (Ch %d, Reg): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_CHARGE_THRESHOLD | (enableCh[i] << 8);
-      printf("Charge Zero Suppression Threshold (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Charge Zero Suppression Threshold (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_SHAPED_TRIGGER_WIDTH | (enableCh[i] << 8);
-      printf("Shaped Trigger (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Shaped Trigger (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_LATENCY_TIME | (enableCh[i] << 8);
-      printf("Latency Time (ch %d): 0x%x\n", enableCh[i], v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Latency Time (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
     for(uint32_t i=0; i<enableCh.size(); i++){
       int couple = (int) std::floor(enableCh[i]/2);
       uint32_t reg = V1730DPP_TRIGGER_VALIDATION_MASK + (4 * couple);
-      printf("Trigger Validation Mask (couple %d): 0x%x\n", couple, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
+      printf("Trigger Validation Mask (Couple %d, Reg 0x%x): 0x%x\n", couple, reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
     }
+    printf("--------------------------------------------------\n\n");
   }
 
 }
@@ -998,7 +896,7 @@ INT init_vme_modules()
 
   uint32_t status;
 
-  v1730DPP_LoadSettings(true, true, true, true);
+  v1730DPP_LoadSettings(true, true, true);
 
   // Make sure the acquisition is stopped
   v1730DPP_AcqCtl(gVme, gV1730Base, V1730DPP_ACQ_STOP);
