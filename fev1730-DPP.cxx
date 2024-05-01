@@ -508,7 +508,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   if(print_default){
     printf("\nDefault Register Values:\n");
     printf("--------------------------------------------------\n");
-    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730DPP_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
       printf("DPP Algorithm Control 1 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
@@ -778,7 +778,7 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   if(print_new){
     printf("\n\nNew Register Values:\n");
     printf("--------------------------------------------------\n");
-    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
+    printf("Board Configuration (Reg 0x%x): 0x%x\n", V1730DPP_BOARD_CONFIG, v1730DPP_RegisterRead(gVme, gV1730Base, V1730DPP_BOARD_CONFIG));
     for(uint32_t i=0; i<enableCh.size(); i++){
       uint32_t reg = V1730DPP_ALGORITHM_CONTROL | (enableCh[i] << 8);
       printf("DPP Algorithm Control 1 (Ch %d, Reg 0x%x): 0x%x\n", enableCh[i], reg, v1730DPP_RegisterRead(gVme, gV1730Base, reg));
