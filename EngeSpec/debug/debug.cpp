@@ -217,11 +217,104 @@ int main(){
 
   // Testing foward and backward coincidence window
 
+  // ************************************************************************************************************
+  // Sort Routine Settings
+  
+  // Number of channels in 1D and 2D histograms
+  int Channels1D = 8192; // TODO - Test this scale (was 4096)
+  int Channels2D = 1024; // TODO - Test this scale (was 512)
+
+  int Histogram_Threshold = 20;
+
+  // Define the channels (0-15)
+  int iFrontHE = 0;
+  int iFrontLE = 1;
+  int iBackHE = 2;
+  int iBackLE = 3;
+  int iE = 4;
+  int iDE = 5;
+  int iSiE = 6;
+  int iSiDE = 7;
+
+  int FP_trigger_ch = iE; // or iFrontHE
+  int Si_trigger_ch = iSiE; // or iSiDE
+
+  // Coincidence Windows for Focal Plane and Si Detector (in ns, number must be even)
+  int window_FP_ns = 1000;
+  int window_Si_ns = 1000;
+
+  // Scaling coincidence time (for E vs time histograms) by this factor
+  // timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
+  int timeScale = 1;
+  // ************************************************************************************************************
+  // Global sort routine variables
+
+  // Data to save for each coincidence window (updated each window)
+  uint32_t FrontHE;
+  uint32_t FrontLE;
+  uint32_t BackHE;
+  uint32_t BackLE;
+  int E;
+  int DE;
+  int SiE;
+  int SiDE;
+
+  int Pos1; // FrontHE - FrontLE (+ offset to center)
+  int Pos2; // BackHE - BackLE (+ offset to center)
+  int Theta; // TODO - May need to fix definition of Theta below
+
+  int Pos1comp; // compressed for 2D histograms
+  int Pos2comp;
+  int Ecomp;
+  int DEcomp;
+  int SiEcomp;
+  int SiDEcomp;
+
+  const double pSiSlope = 0.3; // TODO - Need to read parameters.dat file with pSiSlope value
+  int SiTotalE;
+  int SiTotalEcomp;
+
+  // Flags to prevent more than one signal to be collected from a single component during the coincidence window.
+  // True when signal is detected during window.
+  bool fE = false;
+  bool fDE = false;
+  bool fFrontHE = false;
+  bool fFrontLE = false;
+  bool fBackHE = false;
+  bool fBackLE = false;
+  bool fTheta = false;
+
+  bool fSiE = false;
+  bool fSiDE = false;
+
+  // Converting window duration to timetag units (2 ns/unit - v1730)
+  uint32_t window_FP = (uint32_t) (window_FP_ns/2.0);
+  uint32_t window_Si = (uint32_t) (window_Si_ns/2.0);
+
+  // Half coincidence window width
+  uint32_t half_window_FP = (uint32_t) (window_FP/2.0);
+  uint32_t half_window_Si = (uint32_t) (window_Si/2.0);
+
+  // Maximum timetag value, at which point timetags reset
+  // Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483647 or 0x7FFFFFFF or INT_MAX
+  // Each timetag unit is 2 ns (v1730), so roll back time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
+  uint32_t timetag_rollback = (uint32_t) INT_MAX;
+
+  // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
+  uint32_t timetag_window_stop_previous_FP = 0;
+  uint32_t timetag_window_stop_previous_Si = 0;
+
+  // Flag indicating previous trigger window extended below 0 or beyond rollback (initial value ensures 1st trigger is not ignored)
+  bool is_extended_previous_FP = false;
+  bool is_extended_previous_Si = false;
+
   std::vector<int16_t> energies;
   std::vector<uint32_t> timetags;
   std::vector<int> digitizer_chs;
   std::vector<int> trigger_indices;
-  int trigger_ch = iE;
+  //std::vector<int> FP_trigger_indices;
+  //std::vector<int> Si_trigger_indices;
+  // ************************************************************************************************************
 
   // Give example qlong and timetag data for debugging purposes
   const int num = 18; // Number of buffers for each readout (each board aggregate), max = 2 [memory locations/event] * 1023 [events/ch agg] * 8 [ch aggs/board agg] = 16368.
@@ -246,26 +339,30 @@ int main(){
     uint32_t timetag = data[i+1];
     timetags.push_back(timetag);
 
-    if (digitizer_ch == trigger_ch){
+    if (digitizer_ch == FP_trigger_ch || digitizer_ch == Si_trigger_ch){
       trigger_indices.push_back((int) i/2.0);
     }
+    //if (digitizer_ch == FP_trigger_ch){
+    //  FP_trigger_indices.push_back((int) i/2.0);
+    //}
+    //else if (digitizer_ch == Si_trigger_ch){
+    //  Si_trigger_indices.push_back((int) i/2.0);
+    //}
   }
 
-  // Half coincidence window width
-  uint32_t half_window = (uint32_t) (window/2.0);
-
-  // Maximum timetag value, at which point timetags reset
-  uint32_t timetag_rollback = (uint32_t) INT_MAX;
-
-  // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
-  uint32_t timetag_window_stop_previous = 0;
-
-  // Flag indicating previous trigger window extended below 0 or beyond rollback (initial value ensures 1st trigger is not ignored)
-  bool is_extended_previous = false;
-
-  // Collect coincidence events for each trigger
+  // Collect coincidence events for each FP or Si trigger
   for (int trigger_index : trigger_indices){
-    std::cout << "Trigger index: " << trigger_index << std::endl;
+    std::cout << "Trigger Index: " << trigger_index << std::endl;
+
+    uint32_t half_window;
+    // Get window size based on the kind of trigger
+    if (digitizer_chs[trigger_index] == FP_trigger_ch){
+      half_window = half_window_FP;
+    }
+    else if (digitizer_chs[trigger_index] == Si_trigger_ch){
+      half_window = half_window_Si;
+    }
+
     uint32_t timetag_trigger = timetags[trigger_index];
     uint32_t timetag_window_start;
     uint32_t timetag_window_stop;
@@ -294,27 +391,45 @@ int main(){
     }
 
     // Inhibit trigger if current window overlaps with the previous window. See Offline_Coincidences.pdf for explanation
-    if (timetag_window_start < timetag_window_stop_previous && !(is_extended && is_extended_previous)){ // At least one trigger does not extend beyond 0 or timetag_rollback
-      continue;
+    if (digitizer_chs[trigger_index] == FP_trigger_ch){ // FP window
+      if (timetag_window_start < timetag_window_stop_previous_FP && !(is_extended && is_extended_previous_FP)){ // At least one trigger does not extend beyond 0 or timetag_rollback
+        continue;
+      }
+      else if (timetag_window_start > timetag_window_stop_previous_FP && is_extended && is_extended_previous_FP){ // Both triggers extend beyond 0 or timetag_rollback
+        continue;
+      }
     }
-    else if (timetag_window_start > timetag_window_stop_previous && is_extended && is_extended_previous){ // Both triggers extend beyond 0 or timetag_rollback
-      continue;
+    else if (digitizer_chs[trigger_index] == Si_trigger_ch){ // Si window
+      if (timetag_window_start < timetag_window_stop_previous_Si && !(is_extended && is_extended_previous_Si)){ // At least one trigger does not extend beyond 0 or timetag_rollback
+        continue;
+      }
+      else if (timetag_window_start > timetag_window_stop_previous_Si && is_extended && is_extended_previous_Si){ // Both triggers extend beyond 0 or timetag_rollback
+        continue;
+      }
     }
     // Note: If timetag_window_start == timetag_window_stop_previous and an event happens to occur at that timetag, it is collected by the previous event (see lines 313 vs 336)
     // Note: If a trigger is inhibited, the next trigger window is compared with the last uninhibited trigger window
 
     // Update trigger info for next trigger to check
-    timetag_window_stop_previous = timetag_window_stop;
-    is_extended_previous = is_extended;
+    if (digitizer_chs[trigger_index] == FP_trigger_ch){
+      timetag_window_stop_previous_FP = timetag_window_stop;
+      is_extended_previous_FP = is_extended;
+    }
+    else if (digitizer_chs[trigger_index] == Si_trigger_ch){
+      timetag_window_stop_previous_Si = timetag_window_stop;
+      is_extended_previous_Si = is_extended;
+    }
 
     bool in_window = true;
     bool increment_backwards = true;
     int event_increment = 0;
     int event_index;
     uint32_t timetag;
+    int event_ch;
+    uint16_t energy;
 
+    // Collect each event in the trigger coincidence window
     while(in_window){
-      event_increment++;
       // Look for events before trigger (between trigger and start of window)
       if (increment_backwards){
         event_index = trigger_index - event_increment;
@@ -323,26 +438,45 @@ int main(){
       else{
         event_index = trigger_index + event_increment;
       }
+      event_increment++;
       // Ensure we have not indexed below the first event or above the last event in the board aggregate
       if (event_index >= 0 && event_index <= (int)num/2){
         timetag = timetags[event_index];
-        
-        // Check if the next event is in the window, taking into account rollback extension and whether we are incrementing forward or backward
-            // ...window does not extend below 0 or above rollback timetag...
-        if ((increment_backwards && !is_extended && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
-            (!increment_backwards && !is_extended && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
-            // ... window extends below 0
-            (increment_backwards && is_below_zero && (timetag >= timetag_window_start || timetag <= timetag_trigger )) ||
-            (!increment_backwards && is_below_zero && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
-            // ... window extends above rollback timetag
-            (increment_backwards && is_above_rollback && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
-            (!increment_backwards && is_above_rollback && (timetag < timetag_window_stop || timetag > timetag_trigger))){
+        event_ch = digitizer_chs[event_index];
+        energy = energies[event_index];
 
-          // Inhibit additional trigger(s) within coincidence window
-          if (digitizer_chs[event_index] == trigger_ch){
-            std:: cout << "Inhibited Trigger: Ch = " << digitizer_chs[event_index] << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
-            continue;
-          }
+        // Skip if Si event in FP window
+        if ((event_ch == iSiE || event_ch == iSiDE) && digitizer_chs[trigger_index] == FP_trigger_ch){
+          std::cout << "Si Event in FP window: Ch = " << event_ch << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
+          continue;
+        }
+        // Skip if FP event in Si window
+        else if ((event_ch == iE || event_ch == iDE || event_ch == iFrontHE || event_ch == iFrontLE || 
+                  event_ch == iBackHE || event_ch == iBackLE) && digitizer_chs[trigger_index] == Si_trigger_ch){
+          std::cout << "FP Event in Si window: Ch = " << event_ch << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
+          continue;
+        }
+        // Skip if another trigger of the same type within coincidence window
+        else if (event_ch == digitizer_chs[trigger_index] && event_increment > 0){
+          std:: cout << "Inhibited Trigger: Ch = " << event_ch << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
+          continue;
+        }
+
+        // Check if the next event is in the window, taking into account rollback extension and whether we are incrementing forward or backward
+        // ...window does not extend below 0 or above rollback timetag...
+        if ((increment_backwards && !is_extended && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
+        (!increment_backwards && !is_extended && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
+        // ... window extends below 0
+        (increment_backwards && is_below_zero && (timetag >= timetag_window_start || timetag <= timetag_trigger )) ||
+        (!increment_backwards && is_below_zero && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
+        // ... window extends above rollback timetag
+        (increment_backwards && is_above_rollback && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
+        (!increment_backwards && is_above_rollback && (timetag < timetag_window_stop || timetag > timetag_trigger))){
+
+          // Bring energy to 0 if signal is below our Histogram threshold or above Channels1D (Pos1 threshold handled separately below)
+          if ((event_ch == iE || event_ch == iDE || event_ch == iSiE || event_ch == iSiDE) && 
+              (energy < (uint16_t) Histogram_Threshold || energy > (uint16_t) Channels1D - 1)){energy = 0;}
+
           // ***********************************************************************************************
           // Event is within window. Increment histogram(s) here (or save event to vector for later)
           
@@ -354,7 +488,7 @@ int main(){
           if (increment_backwards){
             // Reset and start searching forwards
             increment_backwards = false;
-            event_increment = 0;
+            event_increment = 1;
           }
           else{
             // Collected all events in the window
@@ -367,7 +501,7 @@ int main(){
         if (increment_backwards){
           // Reset and start searching forwards
           increment_backwards = false;
-          event_increment = 0;
+          event_increment = 1;
         }
         else{
           // Collected all events in the window
