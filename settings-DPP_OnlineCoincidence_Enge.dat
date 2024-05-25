@@ -32,6 +32,8 @@
 1          ## Discrimination Mode | 0 = LED mode, 1 = CFD mode
 40         ## CFD Delay | ns, ignored if LED mode
 75         ## CFD Fraction | %, ignored if LED mode
+1          ## *EXTRAS Recording | 0 = disabled, 1 = enabled | If enabled, CFD ZC interpolation and timetag rollback extension can be saved in a 32-bit word
+2          ## *EXTRAS Format | Ignored if EXTRAS Recording disabled | Options are 0, 1, 2 (best), 4, 5, 7 | See CFD Implemenation in 730 series User Manual
 
 2          ## Input Smoothing | 0 = disabled, 1,2,3,4 = input pulse averaged over 2,4,8,16 samples, respectively
 3          ## Mean Baseline Calc | 0 = fixed baseline, 1,2,3,4 = use 16,64,256,1024 samples, respectively

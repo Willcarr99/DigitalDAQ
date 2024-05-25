@@ -27,6 +27,10 @@ int Channels2D = 1024; // TODO - Test this scale (was 512)
 
 int Threshold = 20;
 
+// EXTRAS Recording Enabled (True) or Disabled (False)
+bool extras = true;
+// 32-bit word: bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
+
 std::vector<int> vPos1;
 std::vector<int> vDE;
 std::vector<int> vSiE;
@@ -707,41 +711,65 @@ TARunObject* MidasAnalyzerModule::NewRunObject(TARunInfo* runinfo){
 TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
 				    TAFlags* flags, TAFlowEvent* flow){
 
-  //std::cout << "Event ID:" << event->event_id << std::endl;
-
   if(event->event_id == 1){
 
-    //event->FindAllBanks();
+    event->FindAllBanks();
     //std::cout << event->BankListToString() << std::endl;
-    
+
     // Get the ADC Bank
-    TMBank* bADC = event->FindBank("ADC1");
+    TMBank* bADC = event->FindBank("V730");
     uint32_t* dADC = (uint32_t*)event->GetBankData(bADC);
     TMBank* bTDC = event->FindBank("TDC1");
     uint32_t* dTDC = (uint32_t*)event->GetBankData(bTDC);
+
+    // printf("V1730 Bank: Name = %s, Type = %d, Size = %d\n",&bADC->name[0],
+    // bADC->type,bADC->data_size); 
+
+    // uint64_t dat;
+    // dat = dADC[0] & 0xFFFF;
+    // printf("dADC[0] = 0x%x\n",dat);
+    // printf("dADC[0] = %d\n",dat);
+
+    int singleADCSize = 0;
+    int singleTDCSize = 0;
+    if(bADC->type == 4)singleADCSize = 2;
+    if(bADC->type == 6)singleADCSize = 4;
     
-    //std::cout << "ADC Size: " << bADC->data_size << std::endl;
-    //std::cout << "TDC Size: " << bTDC->data_size << std::endl;
-    
-    // Get the size
-    int nADC = (bADC->data_size)/4;
-    int nTDC = (bTDC->data_size)/4;
-    
+    // Find the size of the data
+    int nADC = 0;
+    int nTDC = 0;
+    //if(bADC)nADC=(bADC->data_size - 2)/singleADCSize; // TODO - Why data_size - 2 bytes (16 bits)? Ch and Board Agg headers are already removed
+    //if(bTDC)nTDC=(bTDC->data_size - 2)/singleTDCSize;
+    if(bADC)nADC=(bADC->data_size)/singleADCSize;
+    if(bTDC)nTDC=(bTDC->data_size)/singleTDCSize;
+
+    //std::cout << "nADC = " << nADC << " nTDC = " << nTDC << std::endl;
+  
     fRunEventCounter++;
-    fModule->fTotalEventCounter++;
-    //std::cout << "Calling sort" << std::endl;
+    //fModule->fTotalEventCounter++;
+
+    if (extras){
+      fModule->fTotalEventCounter += (int) nADC/3; // TODO - 3 memory locations (Timetag, qlong, and EXTRAS) per event?
+    }
+    else{
+      fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
+    }
+    
     fModule->eA->sort(dADC, nADC, dTDC, nTDC);
 
   } else if(event->event_id == 2){
 
+    // TODO - How do scalers change between v785 and v1730?
+    std::cout << "This is a scaler event. It should never happen!" << std::endl;
+
+    /*
     // Get the Scaler Bank
     TMBank* bSCAL = event->FindBank("SCLR");
     uint32_t *dSCAL = (uint32_t*)event->GetBankData(bSCAL);
 
     fModule->eA->incScalers(dSCAL);
+    */
   }
-
-  //  std::cout << bSCAL << "  " << dSCAL << std::endl;
 
   return flow;
 

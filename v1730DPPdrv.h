@@ -39,6 +39,8 @@ extern "C" {
 
   void v1730DPP_setCFDG(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint32_t percent);
   void v1730DPP_setCFD(MVME_INTERFACE *mvme, uint32_t base, uint32_t delay, uint32_t percent, int channel);
+  void v1730DPP_setExtrasRecording(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
+  void v1730DPP_setExtrasFormatG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode);
   void v1730DPP_setShortGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width);
   void v1730DPP_setShortGate(MVME_INTERFACE *mvme, uint32_t base, uint32_t width, int channel);
   void v1730DPP_setLongGateG(MVME_INTERFACE *mvme, uint32_t base, uint32_t width);
@@ -129,8 +131,8 @@ extern "C" {
   void v1730DPP_SoftClear(MVME_INTERFACE *mvme, uint32_t base);
 
   void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base);
-  void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N);
-  void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry);
+  void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N, int extras);
+  void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry, int extras);
   void v1730DPP_PrintMemoryLocations(MVME_INTERFACE *mvme, uint32_t base);
 
 #ifdef __cplusplus

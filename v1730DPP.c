@@ -803,6 +803,57 @@ void v1730DPP_setDiscriminationMode(MVME_INTERFACE *mvme, uint32_t base, uint32_
   regWrite(mvme, base, reg, value);
 }
 /*****************************************************************/
+void v1730DPP_setExtrasRecording(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if((mode > 1) | (mode < 0)){
+    printf("ERROR: mode setting must be 0 (disabled) or 1 (enabled)\n");
+    return;
+  }
+  switch(mode){
+    case 0:
+      printf("32-bit EXTRAS word recording enabled for all channels\n"); break;
+    case 1:
+      printf("32-bit EXTRAS word recording disabled for all channels\n"); break;
+  }
+
+  // Read the current board configuration register, then add this new extras recording mode
+  uint32_t value = regRead(mvme, base, V1730DPP_BOARD_CONFIG);
+  value = value | mode << 17;
+  
+  regWrite(mvme, base, V1730DPP_BOARD_CONFIG, value);
+}
+/*****************************************************************/
+void v1730DPP_setExtrasFormatG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
+{
+  if((mode > 7) | (mode < 0) | (mode == 3) | (mode == 6)){
+    printf("ERROR: EXTRAS format setting must be 0, 1, 2, 4, 5, or 7. See CFD Implementation in DPP-PSD User Manual (730 series)\n");
+    return;
+  }
+
+  // 32-bit EXTRAS word format defined below:
+  uint32_t bin;
+  switch(mode){
+    case 0:
+      bin = 0x0; break; // bits[31:16] = Extended Time Stamp, bits[15:0] = Baseline * 4
+    case 1:
+      bin = 0x1; break; // bits[31:16] = Extended Time Stamp, bits[15:0] = Flags
+    case 2:
+      bin = 0x2; break; // bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
+    case 4:
+      bin = 0x4; break; // bits[31:16] = Lost Trigger Counter, bits[15:0] = Total Trigger Counter
+    case 5:
+      bin = 0x5; break; // bits[31:16] = Sample After Zero Crossing, bits[15:0] = Sample Before Zero Crossing
+    case 7:
+      bin = 0x7; break; // Fixed value = 0x12345678 (debug purposes only)
+  }
+
+  // Read the current board configuration register, then add this extras format mode
+  uint32_t value = regRead(mvme, base, V1730DPP_ALGORITHM_CONTROL2);
+  value = value | (bin << 8);
+  
+  regWrite(mvme, base, V1730DPP_ALGORITHM_CONTROL2_G, value);
+}
+/*****************************************************************/
 void v1730DPP_setTriggerPileupG(MVME_INTERFACE *mvme, uint32_t base, uint32_t mode)
 {
   if ((mode > 1) | (mode < 0)){
@@ -1985,7 +2036,7 @@ void v1730DPP_SoftClear(MVME_INTERFACE *mvme, uint32_t base)
 /**********************************************************************/
 void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base)
 {
-  // Changed %d's to %u's, since the integers are declared as unsigned. - Will
+  // Changed %d's to %u's, since the integers are declared as unsigned.
   uint32_t buf;
   buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
   printf("Board aggregate size = %u\n", (buf & 0xFFFFFFF));
@@ -2012,7 +2063,7 @@ void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base)
         printf("Time tag = %u\n", (buf & 0x7FFFFFFF));
         buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
         // printf("Extras: 0x%x\n",buf);
-        // Note: Extras is not enabled, so it is skipped when RegisterRead is called here. - Will
+        // Note: Extras is not enabled, so it is skipped when RegisterRead is called here.
         //buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
         printf("Qshort = %u\n", (buf & 0x7FFF));
         printf("Qlong = %u\n", ((buf & 0xFFFF0000)>>16));
@@ -2021,7 +2072,7 @@ void v1730DPP_DataPrint(MVME_INTERFACE *mvme, uint32_t base)
   }
 }
 /**********************************************************************/
-void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
+void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N, int extras)
 {
   // This reads qlong for each event and writes it to a file qlong_data.txt
   // N is number of board aggregates: N = 2**(N_b), where N_b is set in setAggregateOrg (3 here, so N=8)
@@ -2041,7 +2092,7 @@ void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
     board_aggsize = buffer & 0xFFFFFFF;
 
     // Memory bits all becoming 1 means there is no more data to be read in the board agg.
-    if ((board_aggsize > 2052) | (board_aggsize == 1)){
+    if ((board_aggsize > 24572) | (board_aggsize == 1)){ // 24572 is the # of buffers in a full board agg with extras included
       printf("--------------------------------------------------\n");
       //printf("Data has finished reading.\n");
       printf("Ready to start\n");
@@ -2077,7 +2128,20 @@ void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
         buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
         aggsize = buffer & 0x3FFFFF;
         //printf("Channel aggregate size = %u\n", aggsize);
-        nevents = (aggsize-2)/2;
+
+        if (extras == 0){
+          nevents = (aggsize-2)/2;
+        }
+        else if (extras == 1){
+          nevents = (aggsize-2)/3;
+        }
+        else{
+          stop_run = 1;
+          printf("\n");
+          printf("extras (32-bit EXTRAS word recording) must be 0 or 1\n");
+          break;
+        }
+
         buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
         //printf("Channel Format: 0x%x\n",buffer);
         //printf("\n");
@@ -2093,9 +2157,14 @@ void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
             timetag = buffer & 0x7FFFFFFF;
             //printf("Time tag = %u\n", timetag);
             buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
-            // printf("Extras: 0x%x\n",buf);
-            // Note: Extras is not enabled, so it is skipped when RegisterRead is called here. - Will
-            //buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
+
+            // 32-bit EXTRAS word recording (from settings-DPP.dat)
+            if (extras == 1){
+              //printf("Extras: 0x%x\n",buf);
+              //extras_word = buffer & 0xFFFFFFFF;
+              buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
+            }
+
             qlong = ((buffer & 0xFFFF0000)>>16);
             qshort = (buffer & 0x7FFF);
             
@@ -2147,17 +2216,17 @@ void v1730DPP_DataPrint_Updated(MVME_INTERFACE *mvme, uint32_t base, int N)
   //printf("Events with only max qlong: %d\n\n", bad_event_count_qlong);
 }
 /**********************************************************************/
-void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry)
+void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint32_t *nentry, int extras)
 {
   // This reads qlong for each event 
-  uint32_t buffer, qlong, qshort, timetag, chnmask, aggsize, board_aggsize, c, ch, qlong_ch;
+  uint32_t buffer, qlong, qshort, timetag, chnmask, aggsize, board_aggsize, c, ch, qlong_ch, extras_word;
   int16_t qlong_signed, qshort_signed;
   int nevents;
   int stop_run = 0;
 
   uint32_t event_count = 0;
   
-  //----------------- Temporary ------------------
+  //----------------------------------------------
   //FILE *f_qlong = fopen("qlong_data.txt", "w");
   //FILE *f_qshort = fopen("qshort_data.txt", "w");
   //FILE *f_timetag = fopen("timetag_data.txt", "w");
@@ -2169,17 +2238,15 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
   
   buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
 
-  //------------  Will's addition ------------
   board_aggsize = buffer & 0xFFFFFFF;
   // Memory bits all becoming 1 means there is no more data to be read in the current board agg.
-  if ((board_aggsize > 2052) | (board_aggsize == 1)){
+  if ((board_aggsize > 24572) | (board_aggsize == 1)){ // 24572 is the # of buffers in a full board agg with extras included
     printf("--------------------------------------------------\n");
     printf("Error: All bits are 1 in board aggregate header line(s).\n");
     printf("--------------------------------------------------\n");
     printf("\n");
     stop_run = 1;
   }
-  //------------------------------------------
   
   //printf("Board aggregate size = %u\n", board_aggsize);
   buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
@@ -2194,11 +2261,9 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
   for(int j=0; j<8; j++){ // Each dual channel aggregate (8 groups of 2)
     if(((chnmask >> j) & 0x1) == 1){ // e.g. If channel 0 is only one with data, skip to next board aggregate
 
-      // ------------ Will's addition ------------
       if (stop_run == 1){
         break;
       }
-      // -----------------------------------------
       
       //printf("----------------------------------------\n");
       //printf("Channels %u and/or %u have data! Whoop!\n",2*j,(2*j)+1);
@@ -2207,7 +2272,20 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
       buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
       aggsize = buffer & 0x3FFFFF;
       //printf("Channel aggregate size = %u\n", aggsize);
-      nevents = (aggsize-2)/2;
+
+      if (extras == 0){
+        nevents = (aggsize-2)/2;
+      }
+      else if (extras == 1){
+        nevents = (aggsize-2)/3;
+      }
+      else{
+        stop_run = 1;
+        print("\n");
+        printf("extras (32-bit EXTRAS word recording) must be 0 or 1\n");
+        break;
+      }
+
       buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
       //printf("Channel Format: 0x%x\n",buffer);
       //printf("\n");
@@ -2223,9 +2301,13 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
         timetag = buffer & 0x7FFFFFFF;
         //printf("Time tag = %u\n", timetag);
         buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
-        // printf("Extras: 0x%x\n",buf);
-        // Note: Extras is not enabled, so it is skipped when RegisterRead is called here. - Will
-        //buf = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
+
+        // 32-bit EXTRAS word recording (from settings-DPP.dat)
+        if (extras == 1){
+          //printf("Extras: 0x%x\n",buf);
+          extras_word = buffer & 0xFFFFFFFF;
+          buffer = v1730DPP_RegisterRead(mvme, base, V1730DPP_EVENT_READOUT_BUFFER);
+        }
         qlong = ((buffer & 0xFFFF0000)>>16);
         qlong_ch = qlong | ch;
         qshort = (buffer & 0x7FFF);
@@ -2235,7 +2317,7 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
         //printf("Qshort = %u, Qshort_s = %i\n",qshort,qshort_signed);
         //printf("Qlong = %u, Qlong_s = %i\n",qlong,qlong_signed);
     
-        //----------------- Temporary ------------------
+        //----------------------------------------------
         //fprintf(f_qlong, "%u\n", qlong);   // write qlong/qshort/timetag to .txt files
         //fprintf(f_short, "%u\n", qshort); 
         //fprintf(f_timetag, "%u\n", timetag);
@@ -2247,6 +2329,9 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
         
         pdest[event_count++] = qlong_ch;
         pdest[event_count++] = timetag;
+        if (extras == 1){
+          pdest[event_count++] = extras_word;
+        }
 
       }
       
@@ -2257,7 +2342,7 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
 
   *nentry = event_count;
   
-  //----------------- Temporary ------------------
+  //----------------------------------------------
   //fclose(f_qlong);
   //fclose(f_qshort);
   //fclose(f_timetag);

@@ -149,6 +149,7 @@ int nEvtV1730 = 0;
 int nchannels;
 uint32_t nsamples;
 bool useBLT = true;   // Use BLock Transfers?
+int extras; // 32-bit EXTRAS word recording. Assigned in LoadSettings(). 0=disabled, 1=enabled
 #endif
 
 int mvme_read16(int addr)
@@ -280,14 +281,14 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   string cCFDDelay_str, cCFDFraction_str, fixedBaseline_str, chargeThresh_str, testPulse_str;
   string trigHyst_str, chargePed_str, pileupRej_str, overRangeRej_str, selfTrigAcq_str;
   string trigMode_str, enableTrigProp_str, trigCountMode_str, shapedTrig_str, latTime_str, localTrigMode_str;
-  string localTrigValMode_str, addLocalTrigValMode_str, trigValMask1_str, trigValMask2_str;
+  string localTrigValMode_str, addLocalTrigValMode_str, trigValMask1_str, trigValMask2_str, extrasRec_str, extrasMode_str;
 
   vector<uint32_t> enableCh, tlong, tshort, toffset, preTrig, trigHoldOff, inputSmoothing, meanBaseline;
   vector<uint32_t> negSignals, dRange, discrimMode, trigPileUp, oppPol, restartBaseline, offset;
   vector<uint32_t> cGain, cThresh, cCFDDelay, cCFDFraction, fixedBaseline, chargeThresh, testPulse;
   vector<uint32_t> pileupRej, overRangeRej, selfTrigAcq, chargePed, trigHyst;
   vector<uint32_t> trigMode, enableTrigProp, trigCountMode, shapedTrig, latTime, localTrigMode;
-  vector<uint32_t> localTrigValMode, addLocalTrigValMode, trigValMask1, trigValMask2;
+  vector<uint32_t> localTrigValMode, addLocalTrigValMode, trigValMask1, trigValMask2, extrasRec, extrasMode;
 
   std::vector<int> couples;
   std::vector<int> couple_indices;
@@ -336,6 +337,10 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   f >> cCFDDelay_str;
   f.ignore(200,'\n');
   f >> cCFDFraction_str;
+  f.ignore(200,'\n');
+  f >> extrasRec_str;
+  f.ignore(200,'\n');
+  f >> extrasMode_str;
   f.ignore(200,'\n');
 
   f.ignore(200,'\n');
@@ -409,6 +414,8 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   discrimMode = v1730DPP_str_to_uint32t(discrimMode_str);
   cCFDDelay = v1730DPP_str_to_uint32t(cCFDDelay_str);
   cCFDFraction = v1730DPP_str_to_uint32t(cCFDFraction_str);
+  extrasRec = v1730DPP_str_to_uint32t(extrasRec_str);
+  extrasMode = v1730DPP_str_to_uint32t(extrasMode_str);
   dRange = v1730DPP_str_to_uint32t(dRange_str);
   inputSmoothing = v1730DPP_str_to_uint32t(inputSmoothing_str);
   meanBaseline = v1730DPP_str_to_uint32t(meanBaseline_str);
@@ -458,13 +465,15 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
     v1730DPP_PrintSettings(preTrig, "Pre-Trigger", enableCh);
     v1730DPP_PrintSettings(trigHoldOff, "Trigger Hold-Off", enableCh);
     v1730DPP_PrintSettings(cGain, "Gain", enableCh);
+    v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
     v1730DPP_PrintSettings(negSignals, "Negative Signals", enableCh);
     v1730DPP_PrintSettings(offset, "DC Offset", enableCh);
     v1730DPP_PrintSettings(cThresh, "Threshold", enableCh);
     v1730DPP_PrintSettings(discrimMode, "Discrimination Mode", enableCh);
     v1730DPP_PrintSettings(cCFDDelay, "CFD Delay", enableCh);
     v1730DPP_PrintSettings(cCFDFraction, "CFD Fraction", enableCh);
-    v1730DPP_PrintSettings(dRange, "Dynamic Range", enableCh);
+    v1730DPP_PrintSettings(extrasRec, "EXTRAS Recording", enableCh);
+    v1730DPP_PrintSettings(extrasMode, "EXTRAS Format", enableCh);
 
     v1730DPP_PrintSettings(inputSmoothing, "Input Smoothing", enableCh);
     v1730DPP_PrintSettings(meanBaseline, "Mean Baseline Calculation", enableCh);
@@ -644,6 +653,23 @@ void v1730DPP_LoadSettings(bool print_settings, bool print_default, bool print_n
   }
   // Discrimination Mode (LED or CFD)
   if(discrimMode.size()==1){v1730DPP_setDiscriminationModeG(gVme, gV1730Base, discrimMode[0]);}
+  // EXTRAS Recording
+  if(extrasRec.size()==1){
+    v1730DPP_setExtrasRecording(gVme, gV1730Base, extrasRec[0]);
+    // EXTRAS recording flag
+    if ((extrasRec[0] == 0) | (extrasRec[0] == 1)){
+      extras = extrasRec[0];
+    }
+    else{printf("Error: 32-bit EXTRAS word recording must be 0 or 1\n");}
+  }
+  else{cout << "Error: EXTRAS recording must be applied in broadcast mode (all channels)" << endl;}
+  // EXTRAS Format (ignore if EXTRAS Recording is disabled)
+  if(extrasMode.size()==1){
+    if (extrasRec[0]==1){
+      v1730DPP_setExtrasFormatG(gVme, gV1730Base, extrasMode[0]);
+    }
+  }
+  else{cout << "Error: EXTRAS Format must be applied in broadcast mode (all channels)" << endl;}
   // Long Gate
   if(tlong.size()==1){v1730DPP_setLongGateG(gVme, gV1730Base, tlong[0]);}
   // Short Gate
@@ -979,7 +1005,7 @@ INT init_vme_modules()
   sleep(3); //3
 
   //while(v1730DPP_EventsReady(gVme, gV1730Base)){
-  v1730DPP_DataPrint_Updated(gVme, gV1730Base, 8); // Will's updated version
+  v1730DPP_DataPrint_Updated(gVme, gV1730Base, 8, extras);
   // }
 
   //while(v1730DPP_EventsReady(gVme, gV1730Base)){
@@ -1341,7 +1367,7 @@ uint32_t read_v1730(int base, const char* bname, char* pevent, int eventcount)
 
   uint32_t wcount = 0, totaln32read = 0;
   int nEvtV1730 = 0; //totaln32read=0; //, eventcount=0, readcount=0;
-  DWORD data[20000]; //20000
+  DWORD data[24572]; // 24572 is the # of buffers in a full board agg with EXTRAS included
   DWORD *pdata;
   DWORD counter = 0;
 
@@ -1352,7 +1378,7 @@ uint32_t read_v1730(int base, const char* bname, char* pevent, int eventcount)
     /* create Digitizer bank */
     bk_create(pevent, bname, TID_DWORD, (void **)&pdata);
 
-    v1730DPP_ReadQLong(gVme, gV1730Base, data, &wcount);
+    v1730DPP_ReadQLong(gVme, gV1730Base, data, &wcount, extras);
 
     // Loop through all of the stored events
     for(uint32_t entry=0; entry<wcount; entry++){

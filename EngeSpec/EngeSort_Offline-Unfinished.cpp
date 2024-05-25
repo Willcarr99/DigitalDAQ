@@ -57,6 +57,10 @@ int timetagReset = INT_MAX;
 // Scaling coincidence time (for E vs time histograms) by this factor
 // timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
 int timeScale = 1;
+
+// EXTRAS Recording Enabled (True) or Disabled (False)
+bool extras = true;
+// 32-bit word: bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 
@@ -1314,14 +1318,23 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
     // Find the size of the data
     int nADC = 0;
     int nTDC = 0;
-    if(bADC)nADC=(bADC->data_size - 2)/singleADCSize; // TODO - Why data_size - 2? Ch Agg headers? These are already removed
-    if(bTDC)nTDC=(bTDC->data_size - 2)/singleTDCSize;
+    //if(bADC)nADC=(bADC->data_size - 2)/singleADCSize; // TODO - Why data_size - 2 bytes (16 bits)? Ch and Board Agg headers are already removed
+    //if(bTDC)nTDC=(bTDC->data_size - 2)/singleTDCSize;
+    if(bADC)nADC=(bADC->data_size)/singleADCSize;
+    if(bTDC)nTDC=(bTDC->data_size)/singleTDCSize;
 
     //std::cout << "nADC = " << nADC << " nTDC = " << nTDC << std::endl;
   
     fRunEventCounter++;
     //fModule->fTotalEventCounter++;
-    fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
+
+    if (extras){
+      fModule->fTotalEventCounter += (int) nADC/3; // TODO - 3 memory locations (Timetag, qlong, and EXTRAS) per event?
+    }
+    else{
+      fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
+    }
+    
     fModule->eA->sort(dADC, nADC, dTDC, nTDC);
 
   } else if(event->event_id == 2){

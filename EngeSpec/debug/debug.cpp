@@ -15,7 +15,7 @@ int main(){
 
   // ************************************************************************************************************
 
-  // Testing foward and backward in time coincidence window
+  // Testing foward and backward in time coincidence window with EXTRAS word enabled
 
   // ************************************************************************************************************
   // Sort Routine Settings
@@ -51,6 +51,10 @@ int main(){
 
   // Slope of Si spectrum
   const double pSiSlope = 0.3; // TODO - Need to read parameters.dat file with pSiSlope value
+
+  // EXTRAS Recording Enabled (True) or Disabled (False)
+  bool extras = true;
+  // 32-bit word: bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
 
   // ************************************************************************************************************
   // Global sort routine variables
