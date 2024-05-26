@@ -60,12 +60,12 @@ int main(){
   // Global sort routine variables
 
   // Converting window duration to timetag units (2 ns/unit - v1730)
-  uint64_t window_FP = (uint64_t) (window_FP_ns/2.0);
-  uint64_t window_Si = (uint64_t) (window_Si_ns/2.0);
+  uint32_t window_FP = (uint32_t) (window_FP_ns/2.0);
+  uint32_t window_Si = (uint32_t) (window_Si_ns/2.0);
 
   // Half coincidence window width
-  uint64_t half_window_FP = (uint64_t) (window_FP/2.0);
-  uint64_t half_window_Si = (uint64_t) (window_Si/2.0);
+  uint32_t half_window_FP = (uint32_t) (window_FP/2.0);
+  uint32_t half_window_Si = (uint32_t) (window_Si/2.0);
 
   // Maximum timetag value, at which point timetags reset - EXTRAS word extends rollback time
   // - Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483647 or 0x7FFFFFFF or INT_MAX
@@ -73,74 +73,48 @@ int main(){
   // - Timetag for v1730 with EXTRAS enabled and 0x010 (2) written to bits[10:8] of DPP Algorithm Control 2 is a 31+16=47 bit number
   //   with an additional 10 bits reserved for the fine time stamp. So rollback is (2^47 - 1) units ~ 1.407x10^14, so 64-bit int needed
   //   but realistically rollback is not necessary to consider. Time step is 2 ns / 1024 = 0.001953125 ns with fine time stamp.
-  // uint32_t timetag_rollback = (uint32_t) INT_MAX;
-  // uint64_t timetag_rollback = 2^47 - 1;
+  uint32_t timetag_rollback = (uint32_t) INT_MAX;
 
   // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
-  uint64_t timetag_window_stop_previous_FP = 0;
-  uint64_t timetag_window_stop_previous_Si = 0;
+  uint32_t timetag_window_stop_previous_FP = 0;
+  uint32_t timetag_window_stop_previous_Si = 0;
+
+  // Flag indicating previous trigger window extended below 0 or beyond rollback (initial value ensures 1st trigger is not ignored)
+  bool is_extended_previous_FP = false;
+  bool is_extended_previous_Si = false;
 
   std::vector<int16_t> energies;
-  std::vector<uint64_t> course_timestamps; // With EXTRAS enabled and 0x010 (2) format, 47-bit max | T = EXTRAS[31:16] + 31-bit Trigger Timetag | Timetag units
-  std::vector<double> fine_timestamps; // With EXTRAS enabled and 0x010 (2) format, 10-bit max floating point number | T = EXTRAS[9:0] / 1024 | Timetag units
+  std::vector<uint32_t> timetags;
   std::vector<int> digitizer_chs;
   std::vector<int> trigger_indices;
 
   // ************************************************************************************************************
 
   // Give example qlong and timetag data for debugging purposes
-  // trigger_timetag - TTT - 31-bit number in the TTT+CH buffer
-  // extended_timetag - 16-bit number in the EXTRAS buffer: EXTRAS[31:16]
-  // fine_timetag - 10-bit number in the EXTRAS buffer: EXTRAS[9:0]
-  // course_timestamp = (extended_timetag << 31) + trigger_timetag (extended_timetag is read as the most significant bits)
-  // fine_timestamp = fine_timetag / 1024 (fraction less than 1, since fine_timetag max is 1023)
-  const int num = 30; // Number of buffers for each readout (each board aggregate), max = 3 [memory locations/event] * 1023 [events/ch agg] * 8 [ch aggs/board agg] = 24552.
-  // First event:  qlong = 5000 (cDet = 1250), ch = iFLE (1), trigger_timetag = 3000, extended_timetag = 15, fine_timetag = 165  | course_timestamp = 32212257720 (0x780000BB8), fine_timestamp = 0.1611328125
-  // Second event: qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3100, extended_timetag = 15, fine_timetag = 348  | course_timestamp = 32212257820 (0x780000C1C), fine_timestamp = 0.33984375
-  // Third event:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3200, extended_timetag = 15, fine_timetag = 872  | course_timestamp = 32212257920 (0x780000C80), fine_timestamp = 0.8515625
-  // Fourth event: qlong = 5000 (cDet = 1250), ch = iDE (5),  trigger_timetag = 3300, extended_timetag = 15, fine_timetag = 91   | course_timestamp = 32212258020 (0x780000CE4), fine_timestamp = 0.0888671875
-  // Fifth event:  qlong = 5000 (cDet = 1250), ch = iBHE (2), trigger_timetag = 3400, extended_timetag = 15, fine_timetag = 1014 | course_timestamp = 32212258120 (0x780000D48), fine_timestamp = 0.990234375
-  // Sixth event:  qlong = 5000 (cDet = 1250), ch = iBLE (3), trigger_timetag = 3500, extended_timetag = 15, fine_timetag = 649  | course_timestamp = 32212258220 (0x780000DAC), fine_timestamp = 0.6337890625
-  // Seventh event:qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3600, extended_timetag = 15, fine_timetag = 491  | course_timestamp = 32212258320 (0x780000E10), fine_timestamp = 0.4794921875
-  // Eighth event: qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3650, extended_timetag = 15, fine_timetag = 368  | course_timestamp = 32212258370 (0x780000E42), fine_timestamp = 0.359375
-  // Nineth event: qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4000, extended_timetag = 15, fine_timetag = 5    | course_timestamp = 32212258720 (0x780000FA0), fine_timestamp = 0.0048828125
-  // Tenth event:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4600, extended_timetag = 15, fine_timetag = 1020 | course_timestamp = 32212259320 (0x7800011F8), fine_timestamp = 0.99609375
-  uint32_t data[num] = {0x11388, 0xBB8, 0xF00A5, // 1 = qlong | ch, where ch is bits[19:16] and qlong is bits[15:0]
-                        0x1388, 0xC1C, 0xF015C,  // 2 = trigger_timetag, 31-bit trigger time tag (TTT) 
-                        0x41388, 0xC80, 0xF0386, // 3 = EXTRAS, where EXTRAS[31:16] = extended_timetag, EXTRAS[9:0] = fine timetag, EXTRAS[10:15] = flags (all 0 in this example)
-                        0x51388, 0xCE4, 0xF005B,
-                        0x21388, 0xD48, 0xF03F6,
-                        0x31388, 0xDAC, 0xF0289,
-                        0x41388, 0xE10, 0xF01EB,
-                        0x1388, 0xE42, 0xF0170,
-                        0x41388, 0xFA0, 0xF0005,
-                        0x41388, 0x11F8, 0xF03FC};
+  const int num = 18; // Number of buffers for each readout (each board aggregate), max = 2 [memory locations/event] * 1023 [events/ch agg] * 8 [ch aggs/board agg] = 16368.
+  // First event:  qlong = 5000 (cDet = 1250), ch = iFLE (1), timetag = 30 (60 ns)
+  // Second event: qlong = 5000 (cDet = 1250), ch = iFHE (0), timetag = 40 (80 ns)
+  // Third event:  qlong = 5000 (cDet = 1250), ch = iE (4),   timetag = 50 (100 ns)
+  // Fourth event: qlong = 5000 (cDet = 1250), ch = iDE (5),  timetag = 60 (120 ns)
+  // Fifth event:  qlong = 5000 (cDet = 1250), ch = iBHE (2), timetag = 70 (140 ns)
+  // Sixth event:  qlong = 5000 (cDet = 1250), ch = iBLE (3), timetag = 80 (160 ns)
+  // Seventh event:qlong = 5000 (cDet = 1250), ch = iE (4),   timetag = 90 (180 ns)
+  // Eighth event: qlong = 5000 (cDet = 1250), ch = iFHE (0), timetag = 100 (200 ns)
+  // Nineth event: qlong = 5000 (cDet = 1250), ch = iE (4),   timetag = 600 (1200 ns)
+  // uint32_t dADC[nADC] = {0x1388, 0x1E, 0x1388, 0x28, 0x1388, 0x32, 0x1388, 0x3C, 0x1388, 0x46, 0x1388, 0x50, 0x1388, 0x5A, 0x1388, 0x64, 0x1388, 0x258}; // qlong without ch
+  uint32_t data[num] = {0x11388, 0x1E, 0x1388, 0x28, 0x41388, 0x32, 0x51388, 0x3C, 0x21388, 0x46, 0x31388, 0x50, 0x41388, 0x5A, 0x1388, 0x64, 0x41388, 0x258}; // qlong | ch included
 
   // Extract energy, channel, and timetag from each event, and extract index if ch is a trigger
-  for(int i=0; i<num; i+=3){
+  for(int i=0; i<num; i+=2){
     int16_t qlong = (int16_t) (data[i] & 0xFFFF);
-    std::cout << "Index " << (int) i/3.0 << std::endl;
-    std::cout << "qlong = " << qlong << std::endl;
     energies.push_back((int16_t) std::floor(qlong/4.0)); // Maxes out at Channels1D (8,192).
     int digitizer_ch = (int) (data[i] & 0xFFFF0000) >> 16;
-    std::cout << "Ch = " << digitizer_ch << std::endl;
     digitizer_chs.push_back(digitizer_ch);
-    uint32_t timetag = data[i+1]; // 31-bit trigger time tag (TTT)
-    std::cout << "Trigger Time Tag (TTT) = " << timetag << std::endl;
-    uint64_t extended_timetag = (uint64_t) ((data[i+2] & 0xFFFF0000) >> 16); // 16-bit timetag rollback extension
-    std::cout << "Extended Time Stamp = " << extended_timetag << std::endl;
-    uint64_t course_timestamp = (uint64_t) ((extended_timetag & 0xFFFF) << 31) + (uint64_t) timetag;
-    std::cout << "Course Time Stamp = " << course_timestamp << std::endl;
-    course_timestamps.push_back(course_timestamp);
-    uint32_t fine_timetag = (data[i+2] & 0x3FF); // 10-bit fine time tag (from CFD ZC interpolation)
-    std::cout << "Fine Timetag (10-bit) = " << fine_timetag << std::endl;
-    double fine_timestamp = (double) fine_timetag / 1024.0; // Fraction with 2^10 = 1024 steps
-    std::cout << "Fine Time Stamp (10-bit / 1024) = " << fine_timestamp << std::endl;
-    fine_timestamps.push_back(fine_timestamp);
+    uint32_t timetag = data[i+1];
+    timetags.push_back(timetag);
 
     if (digitizer_ch == FP_trigger_ch || digitizer_ch == Si_trigger_ch){
-      trigger_indices.push_back((int) i/3.0);
-      std::cout << "Index is trigger\n" << std::endl;
+      trigger_indices.push_back((int) i/2.0);
     }
   }
 
@@ -149,7 +123,7 @@ int main(){
     std::cout << "\nTrigger Index: " << trigger_index << "\n" << std::endl;
 
     int trigger_ch = digitizer_chs[trigger_index];
-    uint64_t half_window;
+    uint32_t half_window;
     // Get window size based on the kind of trigger
     if (trigger_ch == FP_trigger_ch){
       half_window = half_window_FP;
@@ -158,48 +132,64 @@ int main(){
       half_window = half_window_Si;
     }
 
-    // Timetags of the trigger and its coincidence window start/stop.
-    uint64_t course_timestamp_trigger = course_timestamps[trigger_index];
-    double fine_timestamp_trigger = fine_timestamps[trigger_index];
-    uint64_t timetag_window_start;
-    uint64_t timetag_window_stop;
+    // Timetags of the trigger and its coincidence window start/stop. Bools account for timetag rollback.
+    uint32_t timetag_trigger = timetags[trigger_index];
+    uint32_t timetag_window_start;
+    uint32_t timetag_window_stop;
+    bool is_extended = false;
+    bool is_below_zero = false;
+    bool is_above_rollback = false;
     
-    // Find window start and stop timetags. Not considering fine timestamp here.
-    if (course_timestamp_trigger >= half_window){
-      timetag_window_start = course_timestamp_trigger - half_window;
+    // Find window start and stop timetags ... if they don't extend below 0 or beyond rollback
+    if (timetag_trigger >= half_window && timetag_trigger <= timetag_rollback - half_window){
+      timetag_window_start = timetag_trigger - half_window;
+      timetag_window_stop = timetag_trigger + half_window;
     }
     // ... if window extends below 0
-    else if (course_timestamp_trigger < half_window){
-      timetag_window_start = 0;
+    else if (timetag_trigger < half_window){
+      timetag_window_start = timetag_rollback - (half_window - timetag_trigger);
+      timetag_window_stop = timetag_trigger + half_window;
+      is_extended = true;
+      is_below_zero = true;
+    }
+    // ... if window extends beyond rollback timetag
+    else if (timetag_trigger > timetag_rollback - half_window){
+      timetag_window_start = timetag_trigger - half_window;
+      timetag_window_stop = timetag_trigger + half_window - timetag_rollback;
+      is_extended = true;
+      is_above_rollback = true;
     }
 
-    timetag_window_stop = course_timestamp_trigger + half_window;
-
-    std::cout << "Trigger Window Start = " << timetag_window_start << std::endl;
-    std::cout << "Trigger Window Stop = " << timetag_window_stop << std::endl;
-
-    // Inhibit trigger if current window overlaps with the previous window.
+    // Inhibit trigger if current window overlaps with the previous window. See Offline_Coincidences.pdf for explanation
     if (trigger_ch == FP_trigger_ch){ // FP window
-      if (timetag_window_start < timetag_window_stop_previous_FP){
-        std::cout << "FP Trigger Inhibited, Index = " << trigger_index << std::endl;
+      if (timetag_window_start < timetag_window_stop_previous_FP && !(is_extended && is_extended_previous_FP)){ // At least one trigger does not extend beyond 0 or timetag_rollback
+        continue;
+      }
+      else if (timetag_window_start > timetag_window_stop_previous_FP && is_extended && is_extended_previous_FP){ // Both triggers extend beyond 0 or timetag_rollback
         continue;
       }
     }
     else if (trigger_ch == Si_trigger_ch){ // Si window
-      if (timetag_window_start < timetag_window_stop_previous_Si){
-        std::cout << "Si Trigger Inhibited, Index = " << trigger_index << std::endl;
+      if (timetag_window_start < timetag_window_stop_previous_Si && !(is_extended && is_extended_previous_Si)){ // At least one trigger does not extend beyond 0 or timetag_rollback
+        continue;
+      }
+      else if (timetag_window_start > timetag_window_stop_previous_Si && is_extended && is_extended_previous_Si){ // Both triggers extend beyond 0 or timetag_rollback
         continue;
       }
     }
     // Note: If timetag_window_start == timetag_window_stop_previous and an event happens to occur at that timetag, it is collected by the later event
     // Note: If a trigger is inhibited, the next trigger window is compared with the last uninhibited trigger window
+    //       Technically we could dream up a scenario where 2 consecutive (uninhibited) triggers are separated by an entire timetag rollback duration.
+    //       This would give a false coincidence, but this duration is ~ 4 seconds, and the windows are < ~5 microseconds, making this unlikely
 
     // Update trigger info for next trigger to check (must come after overlapping triggers are inhibited)
     if (trigger_ch == FP_trigger_ch){
       timetag_window_stop_previous_FP = timetag_window_stop;
+      is_extended_previous_FP = is_extended;
     }
     else if (trigger_ch == Si_trigger_ch){
       timetag_window_stop_previous_Si = timetag_window_stop;
+      is_extended_previous_Si = is_extended;
     }
 
     // ***********************************************************************************************
@@ -210,8 +200,7 @@ int main(){
     int event_increment = 0;
 
     // Data to save for coincidences. Stays 0 if no corresponding event in window
-    uint64_t FrontHE_course = 0, FrontLE_course = 0, BackHE_course = 0, BackLE_course = 0;
-    double FrontHE_fine = 0, FrontLE_fine = 0, BackHE_fine = 0, BackLE_fine = 0;
+    uint32_t FrontHE = 0, FrontLE = 0, BackHE = 0, BackLE = 0;
     int E = 0, DE = 0, SiE = 0, SiDE = 0;
 
     // Flags to prevent more than one signal to be collected from a single component during the coincidence window.
@@ -225,8 +214,7 @@ int main(){
     while(in_window){
 
       int event_index;
-      uint64_t course_timestamp;
-      double fine_timestamp;
+      uint32_t timetag;
       int event_ch;
       int energy;
 
@@ -240,38 +228,44 @@ int main(){
       }
       event_increment++;
       // Ensure we have not indexed below the first event or above the last event in the board aggregate
-      if (event_index >= 0 && event_index <= (int) num/3.0){
-        course_timestamp = course_timestamps[event_index];
-        fine_timestamp = fine_timestamps[event_index];
+      if (event_index >= 0 && event_index <= (int)num/2){
+        timetag = timetags[event_index];
         event_ch = digitizer_chs[event_index];
         energy = (int) energies[event_index];
 
         // Skip if Si event in FP window
         if ((event_ch == iSiE || event_ch == iSiDE) && trigger_ch == FP_trigger_ch){
-          std::cout << "Si Event in FP window: Ch = " << event_ch << ", Index = " << event_index << ", Course Timestamp = " << course_timestamp << std::endl;
+          std::cout << "Si Event in FP window: Ch = " << event_ch << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
           continue;
         }
         // Skip if FP event in Si window
         else if ((event_ch == iE || event_ch == iDE || event_ch == iFrontHE || event_ch == iFrontLE || 
                   event_ch == iBackHE || event_ch == iBackLE) && trigger_ch == Si_trigger_ch){
-          std::cout << "FP Event in Si window: Ch = " << event_ch << ", Index = " << event_index << ", Course Timestamp = " << course_timestamp << std::endl;
+          std::cout << "FP Event in Si window: Ch = " << event_ch << ", Index = " << event_index << ", Timetag = " << timetag << std::endl;
           continue;
         }
 
-        // Check if the next event is in the window
-        if (course_timestamp >= timetag_window_start && course_timestamp < timetag_window_stop){
+        // Check if the next event is in the window, taking into account rollback extension and whether we are incrementing forward or backward
+        // ...window does not extend below 0 or above rollback timetag...
+        if ((increment_backwards && !is_extended && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
+        (!increment_backwards && !is_extended && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
+        // ... window extends below 0
+        (increment_backwards && is_below_zero && (timetag >= timetag_window_start || timetag <= timetag_trigger )) ||
+        (!increment_backwards && is_below_zero && (timetag < timetag_window_stop && timetag > timetag_trigger)) ||
+        // ... window extends above rollback timetag
+        (increment_backwards && is_above_rollback && (timetag >= timetag_window_start && timetag <= timetag_trigger)) ||
+        (!increment_backwards && is_above_rollback && (timetag < timetag_window_stop || timetag > timetag_trigger))){
 
           // Bring energy to 0 if signal is below our Histogram threshold or above Channels1D (Pos1 threshold handled separately below)
           if ((event_ch == iE || event_ch == iDE || event_ch == iSiE || event_ch == iSiDE) && 
-              (energy < Histogram_Threshold || energy >= Channels1D)){
+              (energy < Histogram_Threshold || energy > Channels1D - 1)){
             energy = 0;
           }
                     
           // ***********************************************************************************************
           // Event is within window. Save each event to its correspnding variable
 
-          std::cout << "Course Timestamp of event #" << event_index << " = " << course_timestamp << std::endl;
-          std::cout << "Fine Timestamp of event #" << event_index << " = " << fine_timestamp << std::endl;
+          std::cout << "Timetag of event #" << event_index << " = " << timetag << std::endl;
           std::cout << "Ch of event #" << event_index << " = " << event_ch << std::endl;
           std::cout << "Energy of event #" << event_index << " = " << energy << std::endl;
 
@@ -279,10 +273,10 @@ int main(){
           else if (event_ch == iDE && !fDE){fDE = true; DE = energy;}
           else if (event_ch == iSiE && !fSiE){fSiE = true; SiE = energy;}
           else if (event_ch == iSiDE && !fSiDE){fSiDE = true; SiDE = energy;}
-          else if (event_ch == iFrontHE && !fFrontHE){fFrontHE = true; FrontHE_course = course_timestamp; FrontHE_fine = fine_timestamp;}
-          else if (event_ch == iFrontLE && !fFrontLE){fFrontLE = true; FrontLE_course = course_timestamp; FrontLE_fine = fine_timestamp;}
-          else if (event_ch == iBackHE && !fBackHE){fBackHE = true; BackHE_course = course_timestamp; BackHE_fine = fine_timestamp;}
-          else if (event_ch == iBackLE && !fBackLE){fBackLE = true; BackLE_course = course_timestamp; BackLE_fine = fine_timestamp;}          
+          else if (event_ch == iFrontHE && !fFrontHE){fFrontHE = true; FrontHE = timetag;}
+          else if (event_ch == iFrontLE && !fFrontLE){fFrontLE = true; FrontLE = timetag;}
+          else if (event_ch == iBackHE && !fBackHE){fBackHE = true; BackHE = timetag;}
+          else if (event_ch == iBackLE && !fBackLE){fBackLE = true; BackLE = timetag;}          
           // ***********************************************************************************************
         }
         else{
@@ -334,20 +328,13 @@ int main(){
 
     if (fFrontHE && fFrontLE){
       // Pos = HE - LE, scaled so Max Ch = 1 us and Min Ch = -1 us, offset to center (4,096)
-      int Pos1_course = (int) (FrontHE_course - FrontLE_course); // from -1 us to +1 us or -500 to +500 timetag units
-      double Pos1_fine = FrontHE_fine - FrontLE_fine; // from -1023/1024 to +1023/1024 timetag units
-      double Pos1_interpolated = ((double) Pos1_course) + Pos1_fine;
-      Pos1 = (int) std::floor((Channels1D / 1000.0) * Pos1_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
+      Pos1 = (int) std::floor(((Channels1D/1000) * ((int) FrontHE - (int) FrontLE))) + (Channels1D/2);
       if (Pos1 < Histogram_Threshold || Pos1 >= Channels1D){Pos1=0;}
     }
     Pos1comp = (int) std::floor(Pos1/Compression);
 
     if (fBackHE && fBackLE){
-      // Pos = HE - LE, scaled so Max Ch = 1 us and Min Ch = -1 us, offset to center (4,096)
-      int Pos2_course = (int) (BackHE_course - BackLE_course); // from -1 us to +1 us or -500 to +500 timetag units
-      double Pos2_fine = BackHE_fine - BackLE_fine; // from -1023/1024 to +1023/1024 timetag units
-      double Pos2_interpolated = ((double) Pos2_course) + Pos2_fine;
-      Pos2 = (int) std::floor((Channels1D / 1000.0) * Pos2_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
+      Pos2 = (int) std::floor(((Channels1D/1000) * ((int) BackHE - (int) BackLE))) + (Channels1D/2);
       if (Pos2 < Histogram_Threshold || Pos2 >= Channels1D){Pos2=0;}
     }
     Pos2comp = (int) std::floor(Pos2/Compression);
