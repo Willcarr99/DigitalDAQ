@@ -22,97 +22,68 @@ std::string EngeSort::saysomething(std::string str) {
 }
 
 //---------------------------- Settings --------------------------------
-//----------------------------------------------------------------------
 // Number of channels in 1D and 2D histograms
 int Channels1D = 8192; // TODO - Test this scale (was 4096)
 int Channels2D = 1024; // TODO - Test this scale (was 512)
 
-// cDet threshold (Channels1D scale, 0-8191)
-int Thresh = 20;
+// Threshold for EngeSpec Histograms
+int Histogram_Threshold = 10;
 
 // Define the channels (0-15)
-int iFrontHE = 0;
-int iFrontLE = 1;
-int iBackHE = 2;
-int iBackLE = 3;
-int iE = 4;
-int iDE = 5;
-int iSiE = 6;
-int iSiDE = 7;
+int iFrontHE = 0; // Pos1 (Front) High-Energy
+int iFrontLE = 1; // Pos1 (Front) Low-Energy
+int iBackHE = 2;  // Pos2 (Back) High-Energy
+int iBackLE = 3;  // Pos2 (Back) Low-Energy
+int iE = 4;       // Scintillator (E)
+int iDE = 5;      // Proportionality Counter (Delta E)
+int iSiE = 6;     // Silicon Detector (E)
+int iSiDE = 7;    // Silicon Detector (Delta E)
 
-// FP Trigger (By channel number -- for Pos1 use iFrontHE or iFrontLE.)
-// TODO - Implement the ability to trigger on the back.
-int FPTrigger = iE; // Scintillator (E)
-// Note: Si triggers on EITHER SiE or SiDE
+// Channels to trigger on for the Focal-Plane detector (FP) and Silicon detectors (Si)
+int FP_trigger_ch = iE; // iE, iFrontHE, or iFrontLE
+int Si_trigger_ch = iSiE; // iSiE or iSiDE
 
-// Coincidence Windows for Focal Plane and Si Detector (in ns)
-int win_ns = 2000;
-int winSi_ns = 2000;
-
-// Max value of the timetag, at which point it rolls back to 0
-// Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483648 or 0x7FFFFFFF
-// Each timetag unit is 2 ns (v1730), so roll back time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
-int timetagReset = INT_MAX;
-
-// Scaling coincidence time (for E vs time histograms) by this factor
-// timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
-int timeScale = 1;
+// Coincidence Windows for FP and Si detectors (in ns)
+int window_FP_ns = 2000;
+int window_Si_ns = 2000;
 
 // EXTRAS Recording Enabled (True) or Disabled (False)
-bool extras = true;
+// bool extras = true; // Assumed to be true
 // 32-bit word: bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
 //----------------------------------------------------------------------
-//----------------------------------------------------------------------
 
-//------------------ Global sort routine variables --------------------
-// Data to save for each coincidence window (updated each window)
-int FrontHE;
-int FrontLE;
-int BackHE;
-int BackLE;
-int E;
-int DE;
-int SiE;
-int SiDE;
+//------------------ Global sort routine variables ---------------------
 
-int Pos1; // FrontHE - FrontLE (+ offset to center)
-int Pos2; // BackHE - BackLE (+ offset to center)
-int Theta; // TODO - May need to fix definition of Theta below
-
-int Pos1comp; // compressed for 2D histograms
-int Pos2comp;
-int Ecomp;
-int DEcomp;
-int SiEcomp;
-int SiDEcomp;
-
+// Slope for SiTotalE derivation - read from parameters.dat 
 const double pSiSlope = 0.0;
-int SiTotalE;
-int SiTotalEcomp;
 
 // Converting window duration to timetag units (2 ns/unit - v1730)
-int win = (int) (win_ns/2.0);
-int winSi = (int) (winSi_ns/2.0);
+uint64_t window_FP = (uint64_t) std::floor(window_FP_ns/2.0);
+uint64_t window_Si = (uint64_t) std::floor(window_Si_ns/2.0);
 
-// Flags to prevent more than one signal to be collected from a single component during the coincidence window.
-// True when signal is detected during window.
-bool fE = false;
-bool fDE = false;
-bool fFrontHE = false;
-bool fFrontLE = false;
-bool fBackHE = false;
-bool fBackLE = false;
-bool fTheta = false;
+// Half coincidence window width
+uint64_t half_window_FP = (uint64_t) std::floor(window_FP/2.0);
+uint64_t half_window_Si = (uint64_t) std::floor(window_Si/2.0);
 
-bool fSiE = false;
-bool fSiDE = false;
-//----------------------------------------------------------------------
+// Maximum timetag value, at which point timetags reset - EXTRAS word extends rollover time
+// - Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483647 or 0x7FFFFFFF or INT_MAX
+//   Each timetag unit is 2 ns (v1730), so rollover time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
+// - Timetag for v1730 with EXTRAS enabled and 0x010 (2) written to bits[10:8] of DPP Algorithm Control 2 is a 31+16=47 bit number
+//   with an additional 10 bits reserved for the fine time stamp. So rollover is (2^47 - 1) units ~ 1.407x10^14, so 64-bit int needed
+//   but realistically rollover is not necessary to consider. Time step is 2 ns / 1024 = 0.001953125 ns with fine time stamp.
+// uint32_t timetag_rollover = (uint32_t) INT_MAX; // EXTRAS not enabled
+// uint64_t timetag_rollover = 2^47 - 1; // EXTRAS enabled
 
+// Compression for 2D histograms
+double Compression = (double)Channels2D / (double)Channels1D; // 1/8
+
+// vectors for event vs time histograms in FillEndOfRun()
 std::vector<int> vPos1;
 std::vector<int> vDE;
 std::vector<int> vSiE;
 std::vector<int> vSiDE;
 std::vector<int> vSiTotalE;
+//----------------------------------------------------------------------
 
 // 1D Spectra
 Histogram *hPos1;
@@ -284,659 +255,335 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   totalCounter++;
   EventNo++;
 
-  // 32-bit signed integers. Timetag is 31 (unsigned) bits of a 32-bit unsigned integer buffer, so int cast is ok. The MSB is always 0.
-  int ch, time;
+  // vectors for event loop
+  std::vector<int16_t> energies;
+  std::vector<uint64_t> course_timestamps; // With EXTRAS enabled and 0x010 (2) format, 47-bit max | T = EXTRAS[31:16] + 31-bit Trigger Timetag | Timetag units
+  std::vector<double> fine_timestamps; // With EXTRAS enabled and 0x010 (2) format, 10-bit max floating point number | T = EXTRAS[9:0] / 1024 | Fraction of 1 timetag unit
+  std::vector<int> digitizer_chs;
+  std::vector<int> trigger_indices;
 
-  // 16-bit signed integers. Qlong is a 16-bit signed integer in a 32-bit unsigned buffer (pg 100-101 of manual).
-  // So qlong range is -32768 to 32767. cDet range is -8192 to 8191. Negative cDet values are coverted to 0 by the threshold check.
-  int16_t qlong, cDet;
+  // Extract qlong, channel, course and fine timestamps, and extract index if ch is a trigger
+  for(int i=0; i<nADC; i+=3){
 
-  // Window start time - gets updated each trigger. The initial value here prevents having to do an extra if statement for the first trigger in the buffer.
-  int winStart = -win - 1;
-  int winStartSi = -winSi - 1;
+    int16_t qlong = (int16_t) (dADC[i] & 0xFFFF);
+    energies.push_back((int16_t) std::floor(qlong/4.0)); // TODO - Maxes out at Channels1D (8,192).
+    int digitizer_ch = (int) (dADC[i] & 0xFFFF0000) >> 16;
+    digitizer_chs.push_back(digitizer_ch);
+    uint32_t timetag = dADC[i+1]; // 31-bit trigger time tag (TTT)
+    uint64_t extended_timetag = (uint64_t) ((dADC[i+2] & 0xFFFF0000) >> 16); // 16-bit timetag rollover extension
+    uint64_t course_timestamp = (uint64_t) ((extended_timetag & 0xFFFF) << 31) + (uint64_t) timetag;
+    course_timestamps.push_back(course_timestamp);
+    uint32_t fine_timetag = (uint32_t) (dADC[i+2] & 0x3FF); // 10-bit fine time tag (from CFD ZC interpolation)
+    double fine_timestamp = (double) fine_timetag / 1024.0; // Fraction with 2^10 = 1024 steps
+    fine_timestamps.push_back(fine_timestamp);
 
-  // Data for each event is stored in 2 32-bit unsigned integer memory locations. 
-  // Energies, i.e. qlong, (and Ch #) are EVEN dADC counts, timetags are ODD counts (see ReadQLong in v1730DPP.c)
-  for(int i = 0; i<nADC; i+=2){
-    // Extract energy, channel, and timetag from event
-    qlong = (int16_t) (dADC[i] & 0xFFFF);
-    ch = (int) (dADC[i] & 0xFFFF0000) >> 16;
-    cDet = (int16_t) std::floor(qlong/4.0); // Maxes out at Channels1D (8,192).
-    time = (int) dADC[i+1];
+    if (digitizer_ch == FP_trigger_ch || digitizer_ch == Si_trigger_ch){
+      trigger_indices.push_back((int) i/3.0);
+    }
+  }
 
-    // Handle noise for E, DE, SiE, and SiDE (Pos1 and Pos2 handled separately in FP coincidence window below)
-    if (cDet < Thresh || cDet > Channels1D - 1){cDet=0;} // To move 8192 spike to 0, use >=
+  // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
+  uint64_t timetag_window_stop_previous_FP = 0;
+  uint64_t timetag_window_stop_previous_Si = 0;
 
-    //------------------- Si Window -------------------
-    // Triggering on either SiE or SiDE
-    if (ch == iSiE || ch == iSiDE){
-      // Check if Si coincidence window is already open (accounting for possible rollback to 0)
-      if ((time > winStartSi && time < winStartSi + winSi) || (winStartSi > timetagReset - winSi && time > winStartSi + winSi - timetagReset)){
-        // Check if the signal is from SiE and SiDE was the trigger (ignoring multiple occurrences of SiE)
-        if (ch == iSiE && !fSiE && fSiDE){
-          fSiE = true;
-          SiE = (int) cDet;
-          hSiE -> inc(SiE);
-          vSiE.push_back(SiE);
-          vPos1.push_back(0);
-          vDE.push_back(0);
-          vSiDE.push_back(0);
-          SiEcomp = (int) std::floor(SiE/8.0); // This maxes out at 1,024
-          hSiDEvsSiE -> inc(SiEcomp,SiDEcomp);
-          SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
-          SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
-          vSiTotalE.push_back(SiTotalE);
+  // Collect coincidence events for each FP or Si trigger
+  for (int trigger_index : trigger_indices){
 
-          Gate &G3 = hSiDEvsSiE -> getGate(0);
-          //G3.Print();
-          if (G3.inGate(SiEcomp,SiDEcomp)){
-            gateCounter++;
-            //hSiE_G_SiDEvsSiE -> inc(SiE);
-            hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
-            hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
-          }
-        }
-        // Check if the signal is from SiDE and SiE was the trigger (ignoring multiple occurrences of SiDE)
-        else if (ch == iSiDE && !fSiDE && fSiE){
-          fSiDE = true;
-          SiDE = (int) cDet;
-          hSiDE -> inc(SiDE);
-          vSiDE.push_back(SiDE);
-          vPos1.push_back(0);
-          vDE.push_back(0);
-          vSiE.push_back(0);
-          SiDEcomp = (int) std::floor(SiDE/8.0); // This maxes out at 1,024
-          hSiDEvsSiE -> inc(SiEcomp,SiDEcomp);
-          SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
-          SiTotalEcomp = (int) std::floor(SiTotalE/8.0);
-          vSiTotalE.push_back(SiTotalE);
+    int trigger_ch = digitizer_chs[trigger_index];
+    uint64_t half_window;
+    // Get window size based on the kind of trigger
+    if (trigger_ch == FP_trigger_ch){
+      half_window = half_window_FP;
+    }
+    else if (trigger_ch == Si_trigger_ch){
+      half_window = half_window_Si;
+    }
 
-          Gate &G3 = hSiDEvsSiE -> getGate(0);
-          //G3.Print();
-          if (G3.inGate(SiEcomp,SiDEcomp)){
-            gateCounter++;
-            //hSiE_G_SiDEvsSiE -> inc(SiE);
-            hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
-            hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
-          }
-        }
+    // Trigger timestamp and its coincidence window start/stop timestamps.
+    uint64_t course_timestamp_trigger = course_timestamps[trigger_index];
+    // double fine_timestamp_trigger = fine_timestamps[trigger_index]; // Windows not accounting for fine timestamp
+    uint64_t timetag_window_start;
+    uint64_t timetag_window_stop;
+    
+    // Find window start and stop timetags. Not considering fine timestamp.
+    if (course_timestamp_trigger >= half_window){
+      timetag_window_start = course_timestamp_trigger - half_window;
+    }
+    // ... if window extends below 0
+    else if (course_timestamp_trigger < half_window){
+      timetag_window_start = 0;
+    }
+
+    timetag_window_stop = course_timestamp_trigger + half_window;
+
+    // Inhibit trigger if current window overlaps with the previous window.
+    if (trigger_ch == FP_trigger_ch){ // FP window
+      if (timetag_window_start < timetag_window_stop_previous_FP){
+        continue;
       }
+    }
+    else if (trigger_ch == Si_trigger_ch){ // Si window
+      if (timetag_window_start < timetag_window_stop_previous_Si){
+        continue;
+      }
+    }
+    // Note: If timetag_window_start == timetag_window_stop_previous and an event happens to occur at that timetag, it is collected by the later event
+    // Note: If a trigger is inhibited, the next trigger window is compared with the last uninhibited trigger window
 
-      // Previous window ended. Now open new window from trigger.
+    // Update trigger info for next trigger to check (must come after overlapping triggers are inhibited)
+    if (trigger_ch == FP_trigger_ch){
+      timetag_window_stop_previous_FP = timetag_window_stop;
+    }
+    else if (trigger_ch == Si_trigger_ch){
+      timetag_window_stop_previous_Si = timetag_window_stop;
+    }
+
+    // ***********************************************************************************************
+    // Event loop variables for each coincidence window
+
+    bool in_window = true;
+    bool increment_backwards = true;
+    int event_increment = 0;
+
+    // Data to save for coincidences. Stays 0 if no corresponding event in window
+    uint64_t FrontHE_course = 0, FrontLE_course = 0, BackHE_course = 0, BackLE_course = 0;
+    double FrontHE_fine = 0.0, FrontLE_fine = 0.0, BackHE_fine = 0.0, BackLE_fine = 0.0;
+    int E = 0, DE = 0, SiE = 0, SiDE = 0;
+
+    // Flags to prevent more than one signal to be collected from a single component during the coincidence window.
+    // True when signal is detected during window.
+    bool fFrontHE = false, fFrontLE = false, fBackHE = false, fBackLE = false,
+         fE = false, fDE = false, fSiE = false, fSiDE = false;
+    
+    // ***********************************************************************************************
+
+    // Collect each event in the trigger coincidence window
+    while(in_window){
+
+      int event_index;
+      uint64_t course_timestamp;
+      double fine_timestamp;
+      int event_ch;
+      int energy;
+
+      // Look for events before trigger first (between trigger and start of window)
+      if (increment_backwards){
+        event_index = trigger_index - event_increment;
+      }
+      // Then look for events after trigger (between trigger and end of window)
       else{
-        winStartSi = time;
-        if (ch == iSiE){
-          SiE = (int) cDet;
-          hSiE -> inc(SiE); // TODO - Do we want this to increment even if no coincidence?
-          vSiE.push_back(SiE);
-          vPos1.push_back(0);
-          vDE.push_back(0);
-          vSiDE.push_back(0);
-          vSiTotalE.push_back(0);
-          SiEcomp = (int) std::floor(SiE/8.0);
-          fSiE = true;
-          fSiDE = false;
+        event_index = trigger_index + event_increment;
+      }
+      event_increment++;
+
+      // Ensure we have not indexed below the first event or above the last event in the board aggregate
+      if (event_index >= 0 && event_index <= ((int)(nADC/3.0) - 1)){
+        course_timestamp = course_timestamps[event_index];
+        fine_timestamp = fine_timestamps[event_index];
+        event_ch = digitizer_chs[event_index];
+        energy = (int) energies[event_index];
+
+        // Skip if Si event in FP window
+        if ((event_ch == iSiE || event_ch == iSiDE) && trigger_ch == FP_trigger_ch){
+          continue;
         }
-        else if (ch == iSiDE){
-          SiDE = (int) cDet;
-          hSiDE -> inc(SiDE); // TODO - Do we want this to increment even if no coincidence?
-          vSiDE.push_back(SiDE);
-          vPos1.push_back(0);
-          vDE.push_back(0);
-          vSiE.push_back(0);
-          vSiTotalE.push_back(0);
-          SiDEcomp = (int) std::floor(SiDE/8.0);
-          fSiDE = true;
-          fSiE = false;
+        // Skip if FP event in Si window
+        else if ((event_ch == iE || event_ch == iDE || event_ch == iFrontHE || event_ch == iFrontLE || 
+                  event_ch == iBackHE || event_ch == iBackLE) && trigger_ch == Si_trigger_ch){
+          continue;
+        }
+
+        // Check if the next event is in the window
+        if (course_timestamp >= timetag_window_start && course_timestamp < timetag_window_stop){
+
+          // Bring energy to 0 if signal is below our Histogram threshold or above Channels1D (Pos1 threshold handled separately below)
+          if ((event_ch == iE || event_ch == iDE || event_ch == iSiE || event_ch == iSiDE) && 
+              (energy < Histogram_Threshold || energy >= Channels1D)){
+            energy = 0;
+          }
+                    
+          // ***********************************************************************************************
+          // Event is within window. Save each unique event to its correspnding variable(s)
+         
+          if (event_ch == iE && !fE){fE = true; E = energy;}
+          else if (event_ch == iDE && !fDE){fDE = true; DE = energy;}
+          else if (event_ch == iSiE && !fSiE){fSiE = true; SiE = energy;}
+          else if (event_ch == iSiDE && !fSiDE){fSiDE = true; SiDE = energy;}
+          else if (event_ch == iFrontHE && !fFrontHE){fFrontHE = true; FrontHE_course = course_timestamp; FrontHE_fine = fine_timestamp;}
+          else if (event_ch == iFrontLE && !fFrontLE){fFrontLE = true; FrontLE_course = course_timestamp; FrontLE_fine = fine_timestamp;}
+          else if (event_ch == iBackHE && !fBackHE){fBackHE = true; BackHE_course = course_timestamp; BackHE_fine = fine_timestamp;}
+          else if (event_ch == iBackLE && !fBackLE){fBackLE = true; BackLE_course = course_timestamp; BackLE_fine = fine_timestamp;}          
+          // ***********************************************************************************************
+        }
+        else{
+          // Event not within window
+          if (increment_backwards){
+            // Reset and start searching forwards after trigger
+            increment_backwards = false;
+            event_increment = 1;
+          }
+          else{
+            // Collected all events in the window
+            in_window = false;
+          }
         }
       }
+      else{
+        // Reached either the first or last event in the board aggregate
+        if (increment_backwards){
+          // Reset and start searching forwards
+          increment_backwards = false;
+          event_increment = 1;
+        }
+        else{
+          // Collected all events in the window
+          in_window = false;
+        }
+      } 
     }
-    //----------------------------------------------------------
-    //------------------- Focal Plane Window -------------------
-    // Triggering on FPTrigger specified by user
-    else if (ch == iFrontHE || ch == iFrontLE || ch == iBackHE || ch == iBackLE || ch == iE || ch == iDE){
-      // Check if FP coincidence window is still open (accounting for possible timetag rollback to 0)
-      if ((time > winStart && time < winStart + win) || (winStart > timetagReset - win && time > winStart + win - timetagReset)){
-        if (FPTrigger == iE){ // E trigger
-          if (ch == iFrontHE && !fFrontHE){ // Pos1 HE signal
-            fFrontHE = true;
-            FrontHE = time;
-            if (fFrontLE){ // Pos1 HE and LE coincidence
-              Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096).
-              if(Pos1 < Thresh || Pos1 > Channels1D - 1){Pos1=0;}
-              hPos1 -> inc(Pos1);
-              vPos1.push_back(Pos1);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
-              
-              // E vs Pos1
-              hEvsPos1 -> inc(Pos1comp,Ecomp);
+    // ***********************************************************************************************
+    // Derive info from saved energy/timetag data during the coincidence window, or 0 if nonexistent
 
-              if (fDE){
-                // DE vs Pos1
-                hDEvsPos1 -> inc(Pos1comp,DEcomp);
+    int Ecomp = (int) std::floor(E * Compression);
+    int DEcomp = (int) std::floor(DE * Compression);
+    int SiEcomp = (int) std::floor(SiE * Compression);
+    int SiDEcomp = (int) std::floor(SiDE * Compression);
 
-                // Pos1 - DE vs Pos1 Gates
-                Gate &G1 = hDEvsPos1 -> getGate(0);
-                //G1.Print();
-                if (G1.inGate(Pos1comp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsPos1_G1 -> inc(Pos1);
-                }
-                Gate &G2 = hDEvsPos1 -> getGate(1);
-                //G2.Print();
-                if (G2.inGate(Pos1comp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsPos1_G2 -> inc(Pos1);
-                }
+    if(fDE){vDE.push_back(DE);}
+    else{vDE.push_back(0);}
 
-                // Pos1 - DE vs E Gates
-                Gate &G4 = hDEvsE -> getGate(0);
-                //G4.Print();
-                if (G4.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G1 -> inc(Pos1);
-                }
-                Gate &G5 = hDEvsE -> getGate(1);
-                //G5.Print();
-                if (G5.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_DEvsE_G2 -> inc(Pos1);
-                }
-              }
+    if (fSiE){vSiE.push_back(SiE);}
+    else{vSiE.push_back(0);}
+    if (fSiDE){vSiDE.push_back(SiDE);}
+    else{vSiDE.push_back(0);}
 
-              // Pos2 vs Pos1
-              if (fBackHE && fBackLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iFrontLE && !fFrontLE){ // Pos1 LE signal
-            fFrontLE = true;
-            FrontLE = time;
-            if (fFrontHE){ // Pos1 HE and LE coincidence
-              Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-              if(Pos1 < Thresh || Pos1 > Channels1D - 1){Pos1=0;}
-              hPos1 -> inc(Pos1);
-              vPos1.push_back(Pos1);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
-
-              // E vs Pos1
-              hEvsPos1 -> inc(Pos1comp,Ecomp);
-
-              // DE vs Pos1
-              if (fDE){
-                hDEvsPos1 -> inc(Pos1comp,DEcomp);
-
-                // P1 - DE vs Pos1 Gates
-                Gate &G1 = hDEvsPos1 -> getGate(0);
-                //G1.Print();
-                if (G1.inGate(Pos1comp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsPos1_G1 -> inc(Pos1);
-                }
-                Gate &G2 = hDEvsPos1 -> getGate(1);
-                //G2.Print();
-                if (G2.inGate(Pos1comp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsPos1_G2 -> inc(Pos1);
-                }
-
-                // Pos1 - DE vs E Gates
-                Gate &G4 = hDEvsE -> getGate(0);
-                //G4.Print();
-                if (G4.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G1 -> inc(Pos1);
-                }
-                Gate &G5 = hDEvsE -> getGate(1);
-                //G5.Print();
-                if (G5.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_DEvsE_G2 -> inc(Pos1);
-                }
-              }
-
-              // Pos2 vs Pos1
-              if (fBackHE && fBackLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iBackHE && !fBackHE){ // Pos2 HE signal
-            fBackHE = true;
-            BackHE = time;
-            if (fBackLE){
-              Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-              if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
-              hPos2 -> inc(Pos2);
-              vPos1.push_back(0);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
-
-              // Pos2 vs Pos1
-              if (fFrontHE && fFrontLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iBackLE && !fBackLE){ // Pos2 LE signal
-            fBackLE = true;
-            BackLE = time;
-            if (fBackHE){
-              Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-              if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
-              hPos2 -> inc(Pos2);
-              vPos1.push_back(0);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
-
-              // Pos2 vs Pos1
-              if (fFrontHE && fFrontLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iDE && !fDE){ // DE signal
-            fDE = true;
-            DE = (int) cDet;
-            hDE -> inc(DE);
-            vDE.push_back(DE);
-            vPos1.push_back(0);
-            vSiE.push_back(0);
-            vSiDE.push_back(0);
-            vSiTotalE.push_back(0);
-            DEcomp = (int) std::floor(DE/8.0);
-
-            // DE vs E
-            hDEvsE -> inc(Ecomp,DEcomp);
-            
-            // DE vs Pos1
-            if (fFrontHE && fFrontLE){
-              hDEvsPos1 -> inc(Pos1comp,DEcomp);
-
-              // Pos1 - DE vs Pos1 Gates
-              Gate &G1 = hDEvsPos1 -> getGate(0);
-              //G1.Print();
-              if (G1.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G1 -> inc(Pos1);
-              }
-              Gate &G2 = hDEvsPos1 -> getGate(1);
-              //G2.Print();
-              if (G2.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G2 -> inc(Pos1);
-              }
-
-              // Pos 1 - DE vs E Gates
-              Gate &G4 = hDEvsE -> getGate(0);
-              //G4.Print();
-              if (G4.inGate(Ecomp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsE_G1 -> inc(Pos1);
-              }
-              Gate &G5 = hDEvsE -> getGate(1);
-              //G5.Print();
-              if (G5.inGate(Ecomp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsE_G2 -> inc(Pos1);
-              }
-            }
-          }
-        }
-        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){ // Front Trigger
-          if (ch == iE && !fE){ // E signal
-            fE = true;
-            E = (int) cDet;
-            hE -> inc(E);
-            vPos1.push_back(0);
-            vDE.push_back(0);
-            vSiE.push_back(0);
-            vSiDE.push_back(0);
-            vSiTotalE.push_back(0);
-            Ecomp = (int) std::floor(E/8.0);
-
-            // E Gate
-            Gate &G = hE -> getGate(0);
-            //G.Print();
-            if (G.inGate(E)){
-              hE_gE_G1 -> inc(E);
-            }
-
-            // E vs Pos1
-            if (fFrontHE && fFrontLE){
-              hEvsPos1 -> inc(Pos1comp,Ecomp);
-            }
-
-            if (fDE){
-              // DE vs E
-              hDEvsE -> inc(Ecomp,DEcomp);
-
-              // Pos1 - DE vs E Gates
-              if (fFrontHE && fFrontLE){
-                Gate &G4 = hDEvsE -> getGate(0);
-                //G4.Print();
-                if (G4.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G1 -> inc(Pos1);
-                }
-                Gate &G5 = hDEvsE -> getGate(1);
-                //G5.Print();
-                if (G5.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G2 -> inc(Pos1);
-                }
-              }
-            }
-          }
-          else if ((ch == iFrontHE && !fFrontHE) || (ch == iFrontLE && !fFrontLE)){ // Pos1 HE or LE signal
-            if (ch == iFrontHE){
-              fFrontHE = true;
-              FrontHE = time;
-            }
-            else if (ch == iFrontLE){
-              fFrontLE = true;
-              FrontLE = time;
-            }
-            Pos1 = (FrontHE - FrontLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-            if(Pos2 < Thresh || Pos2 > Channels1D - 1){Pos2=0;}
-            hPos1 -> inc(Pos1);
-            vPos1.push_back(Pos1);
-            vDE.push_back(0);
-            vSiE.push_back(0);
-            vSiDE.push_back(0);
-            vSiTotalE.push_back(0);
-            // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-            // TODO - Should I just compress this similar to other 2D histograms?
-            Pos1comp = ((Pos1 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-            //Pos1comp = ((FrontHE - FrontLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos1
-
-            // E vs Pos1
-            if (fE){
-              hEvsPos1 -> inc(Pos1comp,Ecomp);
-            }
-
-            // DE vs Pos1
-            if (fDE){
-              hDEvsPos1 -> inc(Pos1comp,DEcomp);
-
-              // Pos1 - DE vs Pos1 Gates
-              Gate &G1 = hDEvsPos1 -> getGate(0);
-              //G1.Print();
-              if (G1.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G1 -> inc(Pos1);
-              }
-              Gate &G2 = hDEvsPos1 -> getGate(1);
-              //G2.Print();
-              if (G2.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G2 -> inc(Pos1);
-              }
-
-              if (fE){
-                // Pos1 - DE vs E Gates
-                Gate &G4 = hDEvsE -> getGate(0);
-                //G4.Print();
-                if (G4.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G1 -> inc(Pos1);
-                }
-                Gate &G5 = hDEvsE -> getGate(1);
-                //G5.Print();
-                if (G5.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_DEvsE_G2 -> inc(Pos1);
-                }
-              }
-            }
-
-            // Pos2 vs Pos1
-            if (fBackHE && fBackLE){
-              hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-              // TODO - Add Pos2vsPos1 Gates
-            }
-          }
-          else if (ch == iBackHE && !fBackHE){ // Pos2 HE signal
-            fBackHE = true;
-            BackHE = time;
-            if (fBackLE){
-              Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-              if(Pos2 < Thresh || Pos2 > Channels1D/2.0){Pos2=0;}
-              hPos2 -> inc(Pos2);
-              vPos1.push_back(0);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
-
-              // Pos2 vs Pos1
-              if (fFrontHE && fFrontLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iBackLE && !fBackLE){ // Pos2 LE signal
-            fBackLE = true;
-            BackLE = time;
-            if (fBackHE){
-              Pos2 = (BackHE - BackLE) + (Channels1D/2.0); // HE - LE, offset to center (4,096)
-              if(Pos2 < Thresh || Pos2 > Channels1D/2.0){Pos2=0;}
-              hPos2 -> inc(Pos2);
-              vPos1.push_back(0);
-              vDE.push_back(0);
-              vSiE.push_back(0);
-              vSiDE.push_back(0);
-              vSiTotalE.push_back(0);
-              // Cut off the outer-edges of the time range with center at 512. Adjust scaling by timeScale setting
-              // TODO - Should I just compress this similar to other 2D histograms?
-              Pos2comp = ((Pos2 - (Channels1D/2.0)) / timeScale) + (Channels2D/2.0);
-              //Pos2comp = ((BackHE - BackLE) / timeScale) + (Channels2D/2.0); // Needs to be derived from Pos2
-
-              // Pos2 vs Pos1
-              if (fFrontHE && fFrontLE){
-                hPos2vsPos1 -> inc(Pos1comp,Pos2comp);
-                // TODO - Add Pos2vsPos1 Gates
-              }
-            }
-          }
-          else if (ch == iDE && !fDE){ // DE signal
-            fDE = true;
-            DE = (int) cDet;
-            hDE -> inc(DE);
-            vDE.push_back(DE);
-            vPos1.push_back(0);
-            vSiE.push_back(0);
-            vSiDE.push_back(0);
-            vSiTotalE.push_back(0);
-            DEcomp = (int) std::floor(DE/8.0);
-
-            if (fFrontHE && fFrontLE){
-              // DE vs Pos1
-              hDEvsPos1 -> inc(Pos1comp,DEcomp);
-
-              // Pos1 - DE vs Pos1 Gates
-              Gate &G1 = hDEvsPos1 -> getGate(0);
-              //G1.Print();
-              if (G1.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G1 -> inc(Pos1);
-              }
-              Gate &G2 = hDEvsPos1 -> getGate(1);
-              //G2.Print();
-              if (G2.inGate(Pos1comp,DEcomp)){
-                gateCounter++;
-                hPos1_gDEvsPos1_G2 -> inc(Pos1);
-              }
-            }
-
-            if (fE){
-              // DE vs E
-              hDEvsE -> inc(Ecomp,DEcomp);
-              
-              if (fFrontHE && fFrontLE){
-                // Pos1 - DE vs E Gates
-                Gate &G4 = hDEvsE -> getGate(0);
-                //G4.Print();
-                if (G4.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G1 -> inc(Pos1);
-                }
-                Gate &G5 = hDEvsE -> getGate(1);
-                //G5.Print();
-                if (G5.inGate(Ecomp,DEcomp)){
-                  gateCounter++;
-                  hPos1_gDEvsE_G2 -> inc(Pos1);
-                }        
-              }
-            }
-          }
-        }
-        /*
-        // TODO - We'll probably never need to trigger on the back. Skip this for now.
-        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){ // Back Trigger
-          if (ch == iE && !fE){ // E signal
-
-          }
-          else if (ch == iFrontHE && !fFrontHE){ // Pos1 HE signal
-
-          }
-          else if (ch == iFrontLE && !fFrontLE){ // Pos1 LE signal
-
-          }
-          else if ((ch == iBackHE && !fBackHE) || (ch == iBackLE && !fBackLE)){ // Pos2 HE or LE signal
-
-          }
-          else if (ch == iDE && !fDE){ // DE signal
-
-          }
-        }
-        */
-      }
-      // Previous window ended. Now open new window.
-      else if (ch == FPTrigger){
-        winStart = time;
-        if (FPTrigger == iE){ // E Trigger
-          E = (int) cDet;
-          hE -> inc(E);
-          vPos1.push_back(0);
-          vDE.push_back(0);
-          vSiE.push_back(0);
-          vSiDE.push_back(0);
-          vSiTotalE.push_back(0);
-          Ecomp = (int) std::floor(E/8.0);
-          fE = true;
-          fDE = false;
-          fFrontHE = false;
-          fFrontLE = false;
-          fBackHE = false;
-          fBackLE = false;
-          fTheta = false;
-
-          // E Gate
-          Gate &G = hE -> getGate(0);
-          //G.Print();
-          if (G.inGate(E)){
-            hE_gE_G1 -> inc(E);
-          }
-        }
-        else if (FPTrigger == iFrontHE || FPTrigger == iFrontLE){ // Pos1 trigger
-          if (ch == iFrontHE){
-            fFrontHE = true;
-            fFrontLE = false;
-            FrontHE = time;
-          }
-          else if (ch == iFrontLE){
-            fFrontLE = true;
-            fFrontHE = false;
-            FrontLE = time;
-          }
-          fE = false;
-          fDE = false;
-          fBackHE = false;
-          fBackLE = false;
-          fTheta = false;
-        }
-        /*
-        // TODO - We'll probably never need to trigger on the back. Skip this for now.
-        else if (FPTrigger == iBackHE || FPTrigger == iBackLE){ // Pos2 trigger
-          if (ch == iBackHE){
-            fBackHE = true;
-            fBackLE = false;
-            BackHE = time;
-          }
-          else if (ch == iBackLE){
-            fBackLE = true;
-            fBackHE = false;
-            BackLE = time;
-          }
-          fE = false;
-          fDE = false;
-          fFrontHE = false;
-          fFrontLE = false;
-          fTheta = false;
-        }
-        */
-      }
+    int SiTotalE = 0;
+    if (fSiE && fSiDE){
+      SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
+      vSiTotalE.push_back(SiTotalE);
     }
-    else{
-      std::cout << "Error: Unknown Channel" << std::endl;
+    else{vSiTotalE.push_back(0);}
+    int SiTotalEcomp = (int) std::floor(SiTotalE * Compression);
+
+    int Pos1 = 0;
+    int Pos2 = 0;
+    int Pos1comp = 0;
+    int Pos2comp = 0;
+    int Theta = 0;
+
+    if (fFrontHE && fFrontLE){
+      // Pos = HE - LE, scaled so Max Ch = 1 microsecond and Min Ch = -1 microsecond, offset to center (4,096)
+      int Pos1_course = (int) (FrontHE_course - FrontLE_course); // from -1 microsecond to +1 microsecond i.e. -500 to +500 timetag units
+      double Pos1_fine = FrontHE_fine - FrontLE_fine; // from -1023/1024 to +1023/1024 timetag units
+      double Pos1_interpolated = ((double) Pos1_course) + Pos1_fine;
+      Pos1 = (int) std::floor((Channels1D / 1000.0) * Pos1_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
+      if (Pos1 < Histogram_Threshold || Pos1 >= Channels1D){Pos1=0;}
+      vPos1.push_back(Pos1);
     }
+    else{vPos1.push_back(0);}
+    Pos1comp = (int) std::floor(Pos1 * Compression);
+
+    if (fBackHE && fBackLE){
+      int Pos2_course = (int) (BackHE_course - BackLE_course);
+      double Pos2_fine = BackHE_fine - BackLE_fine;
+      double Pos2_interpolated = ((double) Pos2_course) + Pos2_fine;
+      Pos2 = (int) std::floor((Channels1D / 1000.0) * Pos2_interpolated) + (Channels1D/2);
+      if (Pos2 < Histogram_Threshold || Pos2 >= Channels1D){Pos2=0;}
+    }
+    Pos2comp = (int) std::floor(Pos2 * Compression);
+
+    if (fFrontHE && fFrontLE && fBackHE && fBackLE){
+      Theta = (int) std::round(10000.0*atan((Pos2-Pos1)/100.)/3.1415 - 4000.);
+      Theta = std::max(0,Theta);
+    }
+    int Thetacomp = (int) std::floor(Theta * Compression);
+
+    // ***********************************************************************************************
+    // Increment Histograms for all events in the window
+
+    // 1D Histograms
+    hPos1 -> inc(Pos1);
+    hPos2 -> inc(Pos2);
+    hE -> inc(E);
+    hDE -> inc(DE);
+    hSiE -> inc(SiE);
+    hSiDE -> inc(SiDE);
+    hTheta -> inc(Theta);
+
+    // 2D Histograms
+    hDEvsPos1 -> inc(Pos1comp, DEcomp);
+    hEvsPos1 -> inc(Pos1comp, Ecomp);
+    hDEvsE -> inc(Ecomp, DEcomp);
+    hPos2vsPos1 -> inc(Pos1comp, Pos2comp);
+    hThetavsPos1 -> inc(Pos1comp, Thetacomp);
+    hSiDEvsSiE -> inc(SiEcomp, SiDEcomp);
+
+    // Gated 1D Histograms
+
+    // E Gate
+    Gate &G = hE -> getGate(0);
+    //G.Print();
+    if (G.inGate(E)){
+      hE_gE_G1 -> inc(E);
+    }
+
+    // Pos1 G DE vs Pos1
+    Gate &G1 = hDEvsPos1 -> getGate(0);
+    //G1.Print();
+    if (G1.inGate(Pos1comp,DEcomp)){
+      gateCounter++;
+      hPos1_gDEvsPos1_G1 -> inc(Pos1);
+    }
+    Gate &G2 = hDEvsPos1 -> getGate(1);
+    //G2.Print();
+    if (G2.inGate(Pos1comp,DEcomp)){
+      gateCounter++;
+      hPos1_gDEvsPos1_G2 -> inc(Pos1);
+    }
+
+    // Si Gates
+    Gate &G3 = hSiDEvsSiE -> getGate(0);
+    //G3.Print();
+    if (G3.inGate(SiEcomp,SiDEcomp)){
+      gateCounter++;
+      //hSiE_G_SiDEvsSiE -> inc(SiE);
+      hSiTotalE_G_SiDEvsSiE -> inc(SiTotalE);
+      hSiDEvsSiTotalE_G_SiDEvsSiE -> inc(SiTotalEcomp,SiDEcomp);
+    }
+
+    // Pos1 G DE vs E Gates
+    Gate &G4 = hDEvsE -> getGate(0);
+    //G4.Print();
+    if (G4.inGate(Ecomp,DEcomp)){
+      gateCounter++;
+      hPos1_gDEvsE_G1 -> inc(Pos1);
+    }
+    Gate &G5 = hDEvsE -> getGate(1);
+    //G5.Print();
+    if (G5.inGate(Ecomp,DEcomp)){
+      gateCounter++;
+      hPos1_DEvsE_G2 -> inc(Pos1);
+    }
+    // ***********************************************************************************************
   }
 }
 //======================================================================
 
 void EngeSort::FillEndOfRun(int nEvents){
 
-  // TODO - Verify nEvents is correct. Should be nADC/2?
+  // TODO - Verify nEvents is correct. Should be nADC/3? (with EXTRAS enabled)
   //        But the v785 version of fTotalEventCounter increments every sort routine call
 
   int nEventsInGate_P1 = 0;
   int nEventsInGate_Si = 0;
   int nEvents_P1 = 0;
   int nEvents_Si = 0;
-  double fracEventsInGate_P1 = 0;
-  double fracEventsInGate_Si = 0;
-  double fracBCI = 0;
+  double fracEventsInGate_P1 = 0.0;
+  double fracEventsInGate_Si = 0.0;
+  double fracBCI = 0.0;
   bool bPos1vsEventGate = false;
 
   double EvtCompression = (double)Channels2D/(double)nEvents;
-  double Compression = (double)Channels2D/(double)Channels1D;
 
   std::cout << "To convert x to event in Pos 1 vs Event spectrum: Event # = x * " <<
     1/EvtCompression << std::endl;
@@ -964,23 +611,23 @@ void EngeSort::FillEndOfRun(int nEvents){
     // Trick: Using Pos1vsEvt gate, but checking if (e,sitotale) is in the gate. The y-axis value doesn't matter since the gate spans the entire y-axis.
     // An alternative solution would be to make a separate histogram of SiTotalE vs Event and gate on this too, 
     // but this would require the Pos1vsEvent and SiTotalEvsEvent histograms to have identical gates to get the identical events.
-    if(G4.inGate(e, sitotale)){
+    if(G6.inGate(e, sitotale)){
       hSiTotalE_G_Pos1vsEvt->inc(vSiTotalE[i]); // SiTotalE
       nEventsInGate_Si++;
     }
 
-    Gate &G5 = hDEvsPos1->getGate(1); // Same as G2, which is the default DEvsPos1 for some reason
-    if(G4.inGate(e, p) && G5.inGate(p, de)){ // Double gate - DEvsPos1 and Pos1vsEvent
+    Gate &G7 = hDEvsPos1->getGate(1); // Same as G2, which is the default DEvsPos1 for some reason
+    if(G6.inGate(e, p) && G7.inGate(p, de)){ // Double gate - DEvsPos1 and Pos1vsEvent
       hPos1_gDEvPos1_gPos1vsEvt->inc(vPos1[i]); // Pos1
     }
 
-    Gate &G6 = hSiDEvsSiE->getGate(0);
+    Gate &G8 = hSiDEvsSiE->getGate(0);
     // Double Gate - SiDEvsSiE and Pos1vsEvent (same trick as above to get Si events in the same gate as Pos1 vs Event)
-    if(G4.inGate(e, sitotale) && G6.inGate(sie, side)){
+    if(G6.inGate(e, sitotale) && G8.inGate(sie, side)){
       hSiTotalE_G_SiDEvsSiE_G_Pos1vsEvt->inc(vSiTotalE[i]); // SiTotalE
     }
 
-    if(G6.inGate(sie,side)){
+    if(G8.inGate(sie,side)){
       hSiTotalEvsEvt_G_SiDEvsSiE->inc(e, sitotale);
     }
 
@@ -997,13 +644,13 @@ void EngeSort::FillEndOfRun(int nEvents){
   vSiDE.clear();
   vSiTotalE.clear();
 
-  Gate &G4 = hPos1vsEvt->getGate(0);
+  Gate &G6 = hPos1vsEvt->getGate(0);
   if(bPos1vsEventGate){
     // Be careful not to interpret the min/max event gate channels as the total rectangular gate. 
     // It's possible (and often necessary) to create two rectangles with a single gate, to cut out more than one region.
     // This is why getting the fraction of events in the gate is a better strategy to calculate the new BCI, clock, and clocklive,
     // but the Pos1 and SiTotalE fractions are not identical (they are close). Take the average of these fractions as the new BCI, clock, and clocklive fraction to use.
-    std::cout << "Pos1vsEvent Gate Min/Max Event Chs: " << std::round(G4.getMinx()) << " to " << std::round(G4.getMaxx()) << std::endl;
+    std::cout << "Pos1vsEvent Gate Min/Max Event Chs: " << std::round(G6.getMinx()) << " to " << std::round(G6.getMaxx()) << std::endl;
     fracEventsInGate_P1 = (double) nEventsInGate_P1 / (double) nEvents_P1;
     fracEventsInGate_Si = (double) nEventsInGate_Si / (double) nEvents_Si;
     std::cout << "Number of events in Pos1vsEvent Gate: " << nEventsInGate_P1 << std::endl;
@@ -1012,7 +659,7 @@ void EngeSort::FillEndOfRun(int nEvents){
     std::cout << "Total Number of SiTotalE Events: " << nEvents_Si << std::endl;
     std::cout << "Fraction of Events in Pos1vsEvent Gate: " << fracEventsInGate_P1 << std::endl;
     std::cout << "Fraction of Events in SiTotalEvsEvent Gate: " << fracEventsInGate_Si << std::endl;
-    fracBCI = (fracEventsInGate_P1 + fracEventsInGate_Si) / 2;
+    fracBCI = (double) ((fracEventsInGate_P1 + fracEventsInGate_Si) / 2.0);
     std::cout << "New BCI, Clock, and Clocklive fraction = " << fracBCI << std::endl;
   }
 }
@@ -1327,13 +974,8 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
   
     fRunEventCounter++;
     //fModule->fTotalEventCounter++;
-
-    if (extras){
-      fModule->fTotalEventCounter += (int) nADC/3; // TODO - 3 memory locations (Timetag, qlong, and EXTRAS) per event?
-    }
-    else{
-      fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
-    }
+    //fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
+    fModule->fTotalEventCounter += (int) nADC/3; // TODO - 3 memory locations (Timetag, qlong, and EXTRAS) per event?
 
     fModule->eA->sort(dADC, nADC, dTDC, nTDC);
 

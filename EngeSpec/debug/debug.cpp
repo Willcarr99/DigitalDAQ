@@ -25,9 +25,8 @@ int main(){
   int Channels1D = 8192; // TODO - Test this scale (was 4096)
   int Channels2D = 1024; // TODO - Test this scale (was 512)
 
-  double Compression = 8.0; // Compression for 2D histograms, 
-
-  int Histogram_Threshold = 2;
+  // Threshold for EngeSpec Histograms
+  int Histogram_Threshold = 10;
 
   // Define the channels (0-15)
   int iFrontHE = 0; // Pos1 (Front) High-Energy
@@ -39,43 +38,43 @@ int main(){
   int iSiE = 6;     // Silicon Detector (E)
   int iSiDE = 7;    // Silicon Detector (Delta E)
 
-  int FP_trigger_ch = iE; // or iFrontHE
-  int Si_trigger_ch = iSiE; // or iSiDE
+  // Channels to trigger on for the Focal-Plane detector (FP) and Silicon detectors (Si)
+  int FP_trigger_ch = iE; // iE, iFrontHE, or iFrontLE
+  int Si_trigger_ch = iSiE; // iSiE or iSiDE
 
-  // Coincidence Windows for Focal Plane and Si Detector (in ns, number must be even)
+  // Coincidence Windows for FP and Si detectors (in ns, number must be even)
   int window_FP_ns = 2000;
   int window_Si_ns = 2000;
-
-  // Scaling coincidence time (for E vs time histograms) by this factor
-  // timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
-  int timeScale = 1;
 
   // Slope of Si spectrum
   const double pSiSlope = 0.3; // TODO - Need to read parameters.dat file with pSiSlope value
 
   // EXTRAS Recording Enabled (True) or Disabled (False)
-  bool extras = true;
+  // bool extras = true;
   // 32-bit word: bits[31:16] = Extended Time Stamp, bits[15:10] = Flags, bits[9:0] = Fine Time Stamp
 
   // ************************************************************************************************************
   // Global sort routine variables
 
   // Converting window duration to timetag units (2 ns/unit - v1730)
-  uint64_t window_FP = (uint64_t) (window_FP_ns/2.0);
-  uint64_t window_Si = (uint64_t) (window_Si_ns/2.0);
+  uint64_t window_FP = (uint64_t) std::floor(window_FP_ns/2.0);
+  uint64_t window_Si = (uint64_t) std::floor(window_Si_ns/2.0);
 
   // Half coincidence window width
-  uint64_t half_window_FP = (uint64_t) (window_FP/2.0);
-  uint64_t half_window_Si = (uint64_t) (window_Si/2.0);
+  uint64_t half_window_FP = (uint64_t) std::floor(window_FP/2.0);
+  uint64_t half_window_Si = (uint64_t) std::floor(window_Si/2.0);
 
-  // Maximum timetag value, at which point timetags reset - EXTRAS word extends rollback time
+  // Maximum timetag value, at which point timetags reset - EXTRAS word extends rollover time
   // - Default timetag for v1730 (EXTRAS disabled) is a 31-bit number. So max is 2^31 - 1 = 2147483647 or 0x7FFFFFFF or INT_MAX
-  //   Each timetag unit is 2 ns (v1730), so roll back time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
+  //   Each timetag unit is 2 ns (v1730), so rollover time is 2 ns/unit * (2^31 - 1) units ~ 4.295 s
   // - Timetag for v1730 with EXTRAS enabled and 0x010 (2) written to bits[10:8] of DPP Algorithm Control 2 is a 31+16=47 bit number
-  //   with an additional 10 bits reserved for the fine time stamp. So rollback is (2^47 - 1) units ~ 1.407x10^14, so 64-bit int needed
-  //   but realistically rollback is not necessary to consider. Time step is 2 ns / 1024 = 0.001953125 ns with fine time stamp.
-  // uint32_t timetag_rollback = (uint32_t) INT_MAX;
-  // uint64_t timetag_rollback = 2^47 - 1;
+  //   with an additional 10 bits reserved for the fine time stamp. So rollover is (2^47 - 1) units ~ 1.407x10^14, so 64-bit int needed
+  //   but realistically rollover is not necessary to consider. Time step is 2 ns / 1024 = 0.001953125 ns with fine time stamp.
+  // uint32_t timetag_rollover = (uint32_t) INT_MAX;
+  // uint64_t timetag_rollover = 2^47 - 1;
+
+  // Compression for 2D histograms
+  double Compression = (double)Channels2D / (double)Channels1D; //8.0
 
   // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
   uint64_t timetag_window_stop_previous_FP = 0;
@@ -83,7 +82,7 @@ int main(){
 
   std::vector<int16_t> energies;
   std::vector<uint64_t> course_timestamps; // With EXTRAS enabled and 0x010 (2) format, 47-bit max | T = EXTRAS[31:16] + 31-bit Trigger Timetag | Timetag units
-  std::vector<double> fine_timestamps; // With EXTRAS enabled and 0x010 (2) format, 10-bit max floating point number | T = EXTRAS[9:0] / 1024 | Timetag units
+  std::vector<double> fine_timestamps; // With EXTRAS enabled and 0x010 (2) format, 10-bit max floating point number | T = EXTRAS[9:0] / 1024 | Fraction of 1 timetag unit
   std::vector<int> digitizer_chs;
   std::vector<int> trigger_indices;
 
@@ -121,7 +120,7 @@ int main(){
                         0x41388, 0xFA0, 0xF0005,
                         0x41388, 0x11F8, 0xF03FC,
                         0x1388, 0x11F9, 0xF0291,
-                        0x11388, 0x13EB, 0xF00CB}; // 0x11388, 0x13EB, 0xF004B
+                        0x11388, 0x13EB, 0xF004B}; // 0x11388, 0x13EB, 0xF004B
 
   // Extract energy, channel, and timetag from each event, and extract index if ch is a trigger
   for(int i=0; i<num; i+=3){
@@ -134,12 +133,12 @@ int main(){
     digitizer_chs.push_back(digitizer_ch);
     uint32_t timetag = data[i+1]; // 31-bit trigger time tag (TTT)
     std::cout << "Trigger Time Tag (TTT) = " << timetag << std::endl;
-    uint64_t extended_timetag = (uint64_t) ((data[i+2] & 0xFFFF0000) >> 16); // 16-bit timetag rollback extension
+    uint64_t extended_timetag = (uint64_t) ((data[i+2] & 0xFFFF0000) >> 16); // 16-bit timetag rollover extension
     std::cout << "Extended Time Stamp = " << extended_timetag << std::endl;
     uint64_t course_timestamp = (uint64_t) ((extended_timetag & 0xFFFF) << 31) + (uint64_t) timetag;
     std::cout << "Course Time Stamp = " << course_timestamp << std::endl;
     course_timestamps.push_back(course_timestamp);
-    uint32_t fine_timetag = (data[i+2] & 0x3FF); // 10-bit fine time tag (from CFD ZC interpolation)
+    uint32_t fine_timetag = (uint32_t) (data[i+2] & 0x3FF); // 10-bit fine time tag (from CFD ZC interpolation)
     std::cout << "Fine Timetag (10-bit) = " << fine_timetag << std::endl;
     double fine_timestamp = (double) fine_timetag / 1024.0; // Fraction with 2^10 = 1024 steps
     std::cout << "Fine Time Stamp (10-bit / 1024) = " << fine_timestamp << std::endl;
@@ -165,9 +164,9 @@ int main(){
       half_window = half_window_Si;
     }
 
-    // Timetags of the trigger and its coincidence window start/stop.
+    // Trigger timestamp and its coincidence window start/stop timestamps.
     uint64_t course_timestamp_trigger = course_timestamps[trigger_index];
-    double fine_timestamp_trigger = fine_timestamps[trigger_index];
+    // double fine_timestamp_trigger = fine_timestamps[trigger_index]; // Windows not accounting for fine timestamp
     uint64_t timetag_window_start;
     uint64_t timetag_window_stop;
     
@@ -237,17 +236,18 @@ int main(){
       int event_ch;
       int energy;
 
-      // Look for events before trigger (between trigger and start of window)
+      // Look for events before trigger first (between trigger and start of window)
       if (increment_backwards){
         event_index = trigger_index - event_increment;
       }
-      // Look for events after trigger (between trigger and end of window)
+      // Then look for events after trigger (between trigger and end of window)
       else{
         event_index = trigger_index + event_increment;
       }
       event_increment++;
+
       // Ensure we have not indexed below the first event or above the last event in the board aggregate
-      if (event_index >= 0 && event_index <= (int) num/3.0){
+      if (event_index >= 0 && event_index <= ((int)(num/3.0) - 1)){
         course_timestamp = course_timestamps[event_index];
         fine_timestamp = fine_timestamps[event_index];
         event_ch = digitizer_chs[event_index];
@@ -275,7 +275,7 @@ int main(){
           }
                     
           // ***********************************************************************************************
-          // Event is within window. Save each event to its correspnding variable
+          // Event is within window. Save each unique event to its correspnding variable(s)
 
           std::cout << "\nCourse Timestamp of event #" << event_index << " = " << course_timestamp << std::endl;
           std::cout << "Fine Timestamp of event #" << event_index << " = " << fine_timestamp << std::endl;
@@ -321,17 +321,17 @@ int main(){
     // ***********************************************************************************************
     // Derive info from saved energy/timetag data during the coincidence window, or 0 if nonexistent
 
-    int Ecomp = (int) std::floor(E/Compression);
-    int DEcomp = (int) std::floor(DE/Compression);
-    int SiEcomp = (int) std::floor(SiE/Compression);
-    int SiDEcomp = (int) std::floor(SiDE/Compression);
+    int Ecomp = (int) std::floor(E * Compression);
+    int DEcomp = (int) std::floor(DE * Compression);
+    int SiEcomp = (int) std::floor(SiE * Compression);
+    int SiDEcomp = (int) std::floor(SiDE * Compression);
 
     int SiTotalE = 0;
 
     if (fSiE && fSiDE){
       SiTotalE = (int) std::floor((SiE + pSiSlope*SiDE) / (1.0 + pSiSlope));
     }
-    int SiTotalEcomp = (int) std::floor(SiTotalE/Compression);
+    int SiTotalEcomp = (int) std::floor(SiTotalE * Compression);
 
     int Pos1 = 0;
     int Pos2 = 0;
@@ -347,23 +347,22 @@ int main(){
       Pos1 = (int) std::floor((Channels1D / 1000.0) * Pos1_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
       if (Pos1 < Histogram_Threshold || Pos1 >= Channels1D){Pos1=0;}
     }
-    Pos1comp = (int) std::floor(Pos1/Compression);
+    Pos1comp = (int) std::floor(Pos1 * Compression);
 
     if (fBackHE && fBackLE){
-      // Pos = HE - LE, scaled so Max Ch = 1 us and Min Ch = -1 us, offset to center (4,096)
-      int Pos2_course = (int) (BackHE_course - BackLE_course); // from -1 us to +1 us or -500 to +500 timetag units
-      double Pos2_fine = BackHE_fine - BackLE_fine; // from -1023/1024 to +1023/1024 timetag units
+      int Pos2_course = (int) (BackHE_course - BackLE_course);
+      double Pos2_fine = BackHE_fine - BackLE_fine;
       double Pos2_interpolated = ((double) Pos2_course) + Pos2_fine;
-      Pos2 = (int) std::floor((Channels1D / 1000.0) * Pos2_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
+      Pos2 = (int) std::floor((Channels1D / 1000.0) * Pos2_interpolated) + (Channels1D/2);
       if (Pos2 < Histogram_Threshold || Pos2 >= Channels1D){Pos2=0;}
     }
-    Pos2comp = (int) std::floor(Pos2/Compression);
+    Pos2comp = (int) std::floor(Pos2 * Compression);
 
     if (fFrontHE && fFrontLE && fBackHE && fBackLE){
       Theta = (int) std::round(10000.0*atan((Pos2-Pos1)/100.)/3.1415 - 4000.);
       Theta = std::max(0,Theta);
     }
-    int Thetacomp = (int) std::floor(Theta/Compression);
+    int Thetacomp = (int) std::floor(Theta * Compression);
 
     std::cout << "\nE: " << E << std::endl;
     std::cout << "DE: " << DE << std::endl;
