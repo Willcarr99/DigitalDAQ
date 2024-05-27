@@ -33,3 +33,6 @@ _deps
 # Ignore Makefile generated files 
 *.o
 *.exe
+
+# Ignore Xournal++ autosave files
+*.autosave.xopp

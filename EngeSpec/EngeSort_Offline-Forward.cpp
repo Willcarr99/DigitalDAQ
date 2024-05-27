@@ -1334,7 +1334,7 @@ TAFlowEvent* MidasAnalyzerRun::Analyze(TARunInfo* runinfo, TMEvent* event,
     else{
       fModule->fTotalEventCounter += (int) nADC/2; // TODO - 2 memory locations (Timetag and qlong) per event?
     }
-    
+
     fModule->eA->sort(dADC, nADC, dTDC, nTDC);
 
   } else if(event->event_id == 2){

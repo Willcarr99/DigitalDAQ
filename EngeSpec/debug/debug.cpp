@@ -10,6 +10,7 @@
 #include <climits> // For INT_MAX
 #include <vector>
 #include <algorithm>
+#include <iomanip> // For std::setprecision
 
 int main(){
 
@@ -26,7 +27,7 @@ int main(){
 
   double Compression = 8.0; // Compression for 2D histograms, 
 
-  int Histogram_Threshold = 20;
+  int Histogram_Threshold = 2;
 
   // Define the channels (0-15)
   int iFrontHE = 0; // Pos1 (Front) High-Energy
@@ -42,8 +43,8 @@ int main(){
   int Si_trigger_ch = iSiE; // or iSiDE
 
   // Coincidence Windows for Focal Plane and Si Detector (in ns, number must be even)
-  int window_FP_ns = 1000;
-  int window_Si_ns = 1000;
+  int window_FP_ns = 2000;
+  int window_Si_ns = 2000;
 
   // Scaling coincidence time (for E vs time histograms) by this factor
   // timeScale * 2 ns per bin [min = 1 (best resolution - 2 ns), max = 16 (32 ns)]
@@ -86,6 +87,8 @@ int main(){
   std::vector<int> digitizer_chs;
   std::vector<int> trigger_indices;
 
+  // Set number of siginficant digits for cout to print to terminal
+  std::cout << std::setprecision(15);
   // ************************************************************************************************************
 
   // Give example qlong and timetag data for debugging purposes
@@ -94,32 +97,36 @@ int main(){
   // fine_timetag - 10-bit number in the EXTRAS buffer: EXTRAS[9:0]
   // course_timestamp = (extended_timetag << 31) + trigger_timetag (extended_timetag is read as the most significant bits)
   // fine_timestamp = fine_timetag / 1024 (fraction less than 1, since fine_timetag max is 1023)
-  const int num = 30; // Number of buffers for each readout (each board aggregate), max = 3 [memory locations/event] * 1023 [events/ch agg] * 8 [ch aggs/board agg] = 24552.
-  // First event:  qlong = 5000 (cDet = 1250), ch = iFLE (1), trigger_timetag = 3000, extended_timetag = 15, fine_timetag = 165  | course_timestamp = 32212257720 (0x780000BB8), fine_timestamp = 0.1611328125
-  // Second event: qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3100, extended_timetag = 15, fine_timetag = 348  | course_timestamp = 32212257820 (0x780000C1C), fine_timestamp = 0.33984375
-  // Third event:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3200, extended_timetag = 15, fine_timetag = 872  | course_timestamp = 32212257920 (0x780000C80), fine_timestamp = 0.8515625
-  // Fourth event: qlong = 5000 (cDet = 1250), ch = iDE (5),  trigger_timetag = 3300, extended_timetag = 15, fine_timetag = 91   | course_timestamp = 32212258020 (0x780000CE4), fine_timestamp = 0.0888671875
-  // Fifth event:  qlong = 5000 (cDet = 1250), ch = iBHE (2), trigger_timetag = 3400, extended_timetag = 15, fine_timetag = 1014 | course_timestamp = 32212258120 (0x780000D48), fine_timestamp = 0.990234375
-  // Sixth event:  qlong = 5000 (cDet = 1250), ch = iBLE (3), trigger_timetag = 3500, extended_timetag = 15, fine_timetag = 649  | course_timestamp = 32212258220 (0x780000DAC), fine_timestamp = 0.6337890625
-  // Seventh event:qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3600, extended_timetag = 15, fine_timetag = 491  | course_timestamp = 32212258320 (0x780000E10), fine_timestamp = 0.4794921875
-  // Eighth event: qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3650, extended_timetag = 15, fine_timetag = 368  | course_timestamp = 32212258370 (0x780000E42), fine_timestamp = 0.359375
-  // Nineth event: qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4000, extended_timetag = 15, fine_timetag = 5    | course_timestamp = 32212258720 (0x780000FA0), fine_timestamp = 0.0048828125
-  // Tenth event:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4600, extended_timetag = 15, fine_timetag = 1020 | course_timestamp = 32212259320 (0x7800011F8), fine_timestamp = 0.99609375
+  const int num = 36; // Number of buffers for each readout (each board aggregate), max = 3 [memory locations/event] * 1023 [events/ch agg] * 8 [ch aggs/board agg] = 24552.
+  // event 0:  qlong = 5000 (cDet = 1250), ch = iFLE (1), trigger_timetag = 3000, extended_timetag = 15, fine_timetag = 165  | course_timestamp = 32212257720 (0x780000BB8), fine_timestamp = 0.1611328125
+  // event 1:  qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3100, extended_timetag = 15, fine_timetag = 348  | course_timestamp = 32212257820 (0x780000C1C), fine_timestamp = 0.33984375
+  // event 2:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3200, extended_timetag = 15, fine_timetag = 872  | course_timestamp = 32212257920 (0x780000C80), fine_timestamp = 0.8515625
+  // event 3:  qlong = 5000 (cDet = 1250), ch = iDE (5),  trigger_timetag = 3300, extended_timetag = 15, fine_timetag = 91   | course_timestamp = 32212258020 (0x780000CE4), fine_timestamp = 0.0888671875
+  // event 4:  qlong = 5000 (cDet = 1250), ch = iBHE (2), trigger_timetag = 3400, extended_timetag = 15, fine_timetag = 1014 | course_timestamp = 32212258120 (0x780000D48), fine_timestamp = 0.990234375
+  // event 5:  qlong = 5000 (cDet = 1250), ch = iBLE (3), trigger_timetag = 3500, extended_timetag = 15, fine_timetag = 649  | course_timestamp = 32212258220 (0x780000DAC), fine_timestamp = 0.6337890625
+  // event 6:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 3600, extended_timetag = 15, fine_timetag = 491  | course_timestamp = 32212258320 (0x780000E10), fine_timestamp = 0.4794921875
+  // event 7:  qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 3650, extended_timetag = 15, fine_timetag = 368  | course_timestamp = 32212258370 (0x780000E42), fine_timestamp = 0.359375
+  // event 8:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4000, extended_timetag = 15, fine_timetag = 5    | course_timestamp = 32212258720 (0x780000FA0), fine_timestamp = 0.0048828125
+  // event 9:  qlong = 5000 (cDet = 1250), ch = iE (4),   trigger_timetag = 4600, extended_timetag = 15, fine_timetag = 1020 | course_timestamp = 32212259320 (0x7800011F8), fine_timestamp = 0.99609375
+  // event 10: qlong = 5000 (cDet = 1250), ch = iFHE (0), trigger_timetag = 4601, extended_timetag = 15, fine_timetag = 657  | course_timestamp = 32212259321 (0x7800011F9), fine_timestamp = 0.6416015625
+  // event 11: qlong = 5000 (cDet = 1250), ch = iFLE (1), trigger_timetag = 5099, extended_timetag = 15, fine_timetag = 75   | course_timestamp = 32212259819 (0x7800013EB), fine_timestamp = 0.0732421875
   uint32_t data[num] = {0x11388, 0xBB8, 0xF00A5, // 1 = qlong | ch, where ch is bits[19:16] and qlong is bits[15:0]
                         0x1388, 0xC1C, 0xF015C,  // 2 = trigger_timetag, 31-bit trigger time tag (TTT) 
-                        0x41388, 0xC80, 0xF0386, // 3 = EXTRAS, where EXTRAS[31:16] = extended_timetag, EXTRAS[9:0] = fine timetag, EXTRAS[10:15] = flags (all 0 in this example)
+                        0x41388, 0xC80, 0xF0368, // 3 = EXTRAS, where EXTRAS[31:16] = extended_timetag, EXTRAS[9:0] = fine timetag, EXTRAS[10:15] = flags (all 0 in this example)
                         0x51388, 0xCE4, 0xF005B,
                         0x21388, 0xD48, 0xF03F6,
                         0x31388, 0xDAC, 0xF0289,
                         0x41388, 0xE10, 0xF01EB,
                         0x1388, 0xE42, 0xF0170,
                         0x41388, 0xFA0, 0xF0005,
-                        0x41388, 0x11F8, 0xF03FC};
+                        0x41388, 0x11F8, 0xF03FC,
+                        0x1388, 0x11F9, 0xF0291,
+                        0x11388, 0x13EB, 0xF00CB}; // 0x11388, 0x13EB, 0xF004B
 
   // Extract energy, channel, and timetag from each event, and extract index if ch is a trigger
   for(int i=0; i<num; i+=3){
     int16_t qlong = (int16_t) (data[i] & 0xFFFF);
-    std::cout << "Index " << (int) i/3.0 << std::endl;
+    std::cout << "\nIndex " << (int) i/3.0 << std::endl;
     std::cout << "qlong = " << qlong << std::endl;
     energies.push_back((int16_t) std::floor(qlong/4.0)); // Maxes out at Channels1D (8,192).
     int digitizer_ch = (int) (data[i] & 0xFFFF0000) >> 16;
@@ -140,7 +147,7 @@ int main(){
 
     if (digitizer_ch == FP_trigger_ch || digitizer_ch == Si_trigger_ch){
       trigger_indices.push_back((int) i/3.0);
-      std::cout << "Index is trigger\n" << std::endl;
+      std::cout << "Index is trigger" << std::endl;
     }
   }
 
@@ -270,7 +277,7 @@ int main(){
           // ***********************************************************************************************
           // Event is within window. Save each event to its correspnding variable
 
-          std::cout << "Course Timestamp of event #" << event_index << " = " << course_timestamp << std::endl;
+          std::cout << "\nCourse Timestamp of event #" << event_index << " = " << course_timestamp << std::endl;
           std::cout << "Fine Timestamp of event #" << event_index << " = " << fine_timestamp << std::endl;
           std::cout << "Ch of event #" << event_index << " = " << event_ch << std::endl;
           std::cout << "Energy of event #" << event_index << " = " << energy << std::endl;
