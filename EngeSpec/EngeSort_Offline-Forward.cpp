@@ -24,8 +24,9 @@ std::string EngeSort::saysomething(std::string str) {
 //---------------------------- Settings --------------------------------
 //----------------------------------------------------------------------
 // Number of channels in 1D and 2D histograms
-int Channels1D = 8192; // TODO - Test this scale (was 4096)
-int Channels2D = 1024; // TODO - Test this scale (was 512)
+// Ensure self.Nbins is syncronized with these in EngeSpec/modules/SpectrumHandlers.py in the SpectrumObject and SpectrumObject2D classes
+int Channels1D = 8192; // TODO - Test this scale (was 4096, Nbins = 2^12)
+int Channels2D = 1024; // TODO - Test this scale (was 512,  Nbins = 2^9)
 
 // cDet threshold (Channels1D scale, 0-8191)
 int Thresh = 20;
