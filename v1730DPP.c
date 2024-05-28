@@ -2281,7 +2281,7 @@ void v1730DPP_ReadQLong(MVME_INTERFACE *mvme, uint32_t base, DWORD *pdest, uint3
       }
       else{
         stop_run = 1;
-        print("\n");
+        printf("\n");
         printf("extras (32-bit EXTRAS word recording) must be 0 or 1\n");
         break;
       }
