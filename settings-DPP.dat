@@ -52,7 +52,7 @@
 0          ## Trigger Mode | 0 = Normal (default), 1 = Coincidence, 2 = Anti-Coincidence (not available)
 0          ## *Trigger Propagation From Motherboard | 0 = disabled (default), 1 = enabled (enabling required for coincidences between couples)
 0          ## Trigger Counting Mode | 0 = trigger only from accepted events (default), 1 = from all (even rejected) events
-0          ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode
+0          ## Shaped Trigger (Coincidence) Width | ns, mult. of 8, max 8176 ns, apply same to all participating chs, 0 = Normal mode, 1/2 of EngeSort window
 0          ## Latency Time | ns, mult. of 8, max 2040 ns, 0 = disable (normal mode), use 72 ns (16 ns) if propagating (not propagating) to motherboard
 4          ## ^Local Trigger Mode | 0-4, how coupled chs send TRG_REQ to motherboard, 0=disable, 1=AND, 2=Even, 3=Odd, 4=OR (normal mode default)
 0          ## ^Local Trigger Validation Mode | 0-4, how coupled chs generate TRG_VAL, 0 = disable, 1 = use additional options (below),
