@@ -6,7 +6,8 @@
 //#include <climits> // For INT_MAX
 #include <cmath>
 
-#include "EngeSort.h"
+//#include "EngeSort.h"
+#include "v1730EngeSort.h"
 #include "TV792Data.hxx"
 
 Messages messages;
@@ -17,10 +18,9 @@ std::string EngeSort::sayhello( ) {
 std::string EngeSort::saygoodbye( ) {
   return messages.saygoodbye();
 }
-std::string EngeSort::saysomething(std::string str) {
-  
-  return messages.saysomething(str);
-}
+//std::string EngeSort::saysomething(std::string str){
+//  return messages.saysomething(str);
+//}
 
 //---------------------------- Settings --------------------------------
 // Number of channels in 1D and 2D histograms
@@ -29,7 +29,7 @@ int Channels1D = 8192; // TODO - Test this scale (was 4096, Nbins = 2^12)
 int Channels2D = 1024; // TODO - Test this scale (was 512,  Nbins = 2^9)
 
 // Threshold for EngeSpec Histograms
-int Histogram_Threshold = 10;
+int Histogram_Threshold = 0;
 
 // Define the channels (0-15)
 int iFrontHE = 0; // Pos1 (Front) High-Energy
@@ -42,13 +42,13 @@ int iSiE = 6;     // Silicon Detector (E)
 int iSiDE = 7;    // Silicon Detector (Delta E)
 
 // Channels to trigger on for the Focal-Plane detector (FP) and Silicon detectors (Si)
-int FP_trigger_ch = iE; // iE, iFrontHE, or iFrontLE
+int FP_trigger_ch = iFrontHE; // iE, iFrontHE, or iFrontLE
 int Si_trigger_ch = iSiE; // iSiE or iSiDE
 
 // Coincidence Windows for FP and Si detectors (in ns)
 // If running the digitizer in Online (Coincidence) Mode, this should be twice the shaped trigger width used for the triggering channel
-int window_FP_ns = 2000;
-int window_Si_ns = 2000;
+int window_FP_ns = 30000;
+int window_Si_ns = 30000;
 
 // EXTRAS Recording Enabled (True) or Disabled (False)
 // bool extras = true; // Assumed to be true
@@ -87,6 +87,11 @@ std::vector<int> vDE;
 std::vector<int> vSiE;
 std::vector<int> vSiDE;
 std::vector<int> vSiTotalE;
+
+// Counting variables
+int nFrontHE = 0, nFrontLE = 0, nBackHE = 0, nBackLE = 0, nE = 0, nDE = 0, nSiE = 0, nSiDE = 0;
+int inhibitedTriggersFP = 0, inhibitedTriggersSi = 0;
+int Ecount = 0, DEcount = 0, SiEcount = 0, SiDEcount = 0, FrontHEcount = 0, FrontLEcount = 0, BackHEcount = 0, BackLEcount = 0;
 //----------------------------------------------------------------------
 
 // 1D Spectra
@@ -260,6 +265,10 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   totalCounter++;
   EventNo++;
 
+  //std::cout << "Sort # " << totalCounter << std::endl;
+  //std::cout << "nADC:  " << nADC << std::endl;
+  //std::cout << "nTDC:  " << nTDC << std::endl;
+
   // vectors for event loop
   std::vector<int16_t> energies;
   std::vector<uint64_t> course_timestamps; // With EXTRAS enabled and 0x010 (2) format, 47-bit max | T = EXTRAS[31:16] + 31-bit Trigger Timetag | Timetag units
@@ -268,6 +277,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
   std::vector<int> trigger_indices;
 
   // Extract qlong, channel, course and fine timestamps, and extract index if ch is a trigger
+  //std::cout << "nADC = " << nADC << std::endl;
   for(int i=0; i<nADC; i+=3){
 
     int16_t qlong = (int16_t) (dADC[i] & 0xFFFF);
@@ -284,7 +294,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
     if (digitizer_ch == FP_trigger_ch || digitizer_ch == Si_trigger_ch){
       trigger_indices.push_back((int) i/3.0);
+      //std::cout << "Trigger Index: " << (int) i/3.0 << std::endl;
     }
+
+    if (digitizer_ch == iFrontHE){nFrontHE++;} // std::cout << "FrontHE course timestamp: " << course_timestamp << std::endl;} // std::cout << "FrontHE energy: " << qlong << std::endl;}
+    if (digitizer_ch == iFrontLE){nFrontLE++;} // std::cout << "FrontLE course timestamp: " << course_timestamp << std::endl;} // std::cout << "FrontLE energy: " << qlong << std::endl;}
+    if (digitizer_ch == iBackHE){nBackHE++;}
+    if (digitizer_ch == iBackLE){nBackLE++;}
+    if (digitizer_ch == iE){nE++;} // std::cout << "E course timestamp: " << course_timestamp << std::endl;} // std::cout << "E energy: " << qlong << std::endl;}
+    if (digitizer_ch == iDE){nDE++;} // std::cout << "DE course timestamp: " << course_timestamp << std::endl;} //std::cout << "DE energy: " << qlong << std::endl;}
+    if (digitizer_ch == iSiDE){nSiDE++;} // << std::cout << "SiDE energy: " << (int16_t) std::floor(qlong/4.0) << std::endl;}
+    if (digitizer_ch == iSiE){nSiE++;} //std::cout << "SiE energy: " << (int16_t) std::floor(qlong/4.0) << std::endl;}
   }
 
   // Previous trigger window end timetag (initial value ensures 1st trigger is not ignored)
@@ -293,6 +313,8 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
 
   // Collect coincidence events for each FP or Si trigger
   for (int trigger_index : trigger_indices){
+
+    //std::cout << "Trigger Index: " << trigger_index << std::endl;
 
     int trigger_ch = digitizer_chs[trigger_index];
     uint64_t half_window;
@@ -324,11 +346,13 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     // Inhibit trigger if current window overlaps with the previous window.
     if (trigger_ch == FP_trigger_ch){ // FP window
       if (timetag_window_start < timetag_window_stop_previous_FP){
+        inhibitedTriggersFP++;
         continue;
       }
     }
     else if (trigger_ch == Si_trigger_ch){ // Si window
       if (timetag_window_start < timetag_window_stop_previous_Si){
+        inhibitedTriggersSi++;
         continue;
       }
     }
@@ -388,6 +412,12 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
         event_ch = digitizer_chs[event_index];
         energy = (int) energies[event_index];
 
+        //if (event_ch == iFrontHE){std::cout << "At FrontHE event in window" << std::endl;}
+        //else if (event_ch == iFrontLE){std::cout << "At FrontLE event in window" << std::endl;}
+
+        //if (event_ch == iFrontHE && !fFrontHE){std::cout << "At FrontHE event in window (Flag false)" << std::endl;}
+        //else if (event_ch == iFrontLE && !fFrontLE){std::cout << "At FrontLE event in window (Flag false)" << std::endl;}
+
         // Skip if Si event in FP window
         if ((event_ch == iSiE || event_ch == iSiDE) && trigger_ch == FP_trigger_ch){
           continue;
@@ -409,15 +439,17 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
                     
           // ***********************************************************************************************
           // Event is within window. Save each unique event to its correspnding variable(s)
-         
-          if (event_ch == iE && !fE){fE = true; E = energy;}
-          else if (event_ch == iDE && !fDE){fDE = true; DE = energy;}
-          else if (event_ch == iSiE && !fSiE){fSiE = true; SiE = energy;}
-          else if (event_ch == iSiDE && !fSiDE){fSiDE = true; SiDE = energy;}
-          else if (event_ch == iFrontHE && !fFrontHE){fFrontHE = true; FrontHE_course = course_timestamp; FrontHE_fine = fine_timestamp;}
-          else if (event_ch == iFrontLE && !fFrontLE){fFrontLE = true; FrontLE_course = course_timestamp; FrontLE_fine = fine_timestamp;}
-          else if (event_ch == iBackHE && !fBackHE){fBackHE = true; BackHE_course = course_timestamp; BackHE_fine = fine_timestamp;}
-          else if (event_ch == iBackLE && !fBackLE){fBackLE = true; BackLE_course = course_timestamp; BackLE_fine = fine_timestamp;}          
+
+          //std::cout << "Energy: " << energy << std::endl;
+
+          if (event_ch == iE && !fE){fE = true; E = energy; Ecount++;}
+          else if (event_ch == iDE && !fDE){fDE = true; DE = energy; DEcount++;}
+          else if (event_ch == iSiE && !fSiE){fSiE = true; SiE = energy; SiEcount++;}
+          else if (event_ch == iSiDE && !fSiDE){fSiDE = true; SiDE = energy; SiDEcount++;}
+          else if (event_ch == iFrontHE && !fFrontHE){fFrontHE = true; FrontHE_course = course_timestamp; FrontHE_fine = fine_timestamp; FrontHEcount++;} // std::cout << "FrontHE course timestamp (coin): " << course_timestamp << std::endl;}
+          else if (event_ch == iFrontLE && !fFrontLE){fFrontLE = true; FrontLE_course = course_timestamp; FrontLE_fine = fine_timestamp; FrontLEcount++;} // std::cout << "FrontLE course timestamp (coin): " << course_timestamp << std::endl;}
+          else if (event_ch == iBackHE && !fBackHE){fBackHE = true; BackHE_course = course_timestamp; BackHE_fine = fine_timestamp; BackHEcount++;}
+          else if (event_ch == iBackLE && !fBackLE){fBackLE = true; BackLE_course = course_timestamp; BackLE_fine = fine_timestamp; BackLEcount++;}          
           // ***********************************************************************************************
         }
         else{
@@ -482,6 +514,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
       double Pos1_fine = FrontHE_fine - FrontLE_fine; // from -1023/1024 to +1023/1024 timetag units
       double Pos1_interpolated = ((double) Pos1_course) + Pos1_fine;
       Pos1 = (int) std::floor((Channels1D / 1000.0) * Pos1_interpolated) + (Channels1D/2); // scaled to [0, Channels1D] with each bin unique
+      //std::cout << "Pos1 course + fine: " << Pos1_interpolated << std::endl;
       if (Pos1 < Histogram_Threshold || Pos1 >= Channels1D){Pos1=0;}
       vPos1.push_back(Pos1);
     }
@@ -593,7 +626,37 @@ void EngeSort::FillEndOfRun(int nEvents){
   std::cout << "To convert x to event in Pos 1 vs Event spectrum: Event # = x * " <<
     1/EvtCompression << std::endl;
 
-  for(int i=0; i<nEvents; i++){
+  std::cout << "Length of vPos1 = " << vPos1.size() << std::endl;
+  //std::cout << "Length of vDE = " << vDE.size() << std::endl;
+  //std::cout << "Length of vSiE = " << vSiE.size() << std::endl;
+  //std::cout << "Length of vSiDE = " << vSiDE.size() << std::endl;
+  //std::cout << "Length of vSiTotalE = " << vSiTotalE.size() << std::endl;
+
+  std::cout << "Total FrontHE = " << nFrontHE << std::endl;
+  std::cout << "Total FrontLE = " << nFrontLE << std::endl;
+  std::cout << "Total BackHE  = " << nBackHE << std::endl;
+  std::cout << "Total BackLE  = " << nBackLE << std::endl;
+  std::cout << "Total E       = " << nE << std::endl;
+  std::cout << "Total DE      = " << nDE << std::endl;
+
+  std::cout << "Total SiE     = " << nSiE << std::endl;
+  std::cout << "Total SiDE    = " << nSiDE << std::endl;
+
+  std::cout << "\nInhibited FP Triggers = " << inhibitedTriggersFP << std::endl;
+  std::cout << "Inhibited Si Triggers = " << inhibitedTriggersSi << std::endl;
+  std::cout << "\nE in window count = " << Ecount << std::endl;
+  std::cout << "DE in window count = " << DEcount << std::endl;
+  std::cout << "FrontHE in window count = " << FrontHEcount << std::endl;
+  std::cout << "FrontLE in window count = " << FrontLEcount << std::endl;
+  std::cout << "BackHE in window count = " << BackHEcount << std::endl;
+  std::cout << "BackLE in window count = " << BackLEcount << std::endl;
+
+  std::cout << "SiE in window count = " << SiEcount << std::endl;
+  std::cout << "SiDE in window count = " << SiDEcount << std::endl;
+  std::cout << std::endl;
+
+  //for(int i=0; i<nEvents; i++){
+  for(int i=0; i<vPos1.size(); i++){
     int e = (int) std::floor(EvtCompression * i);
     int p = (int) std::floor(Compression * vPos1[i]);
     int de = (int) std::floor(Compression * vDE[i]);
@@ -601,6 +664,7 @@ void EngeSort::FillEndOfRun(int nEvents){
     int side = (int) std::floor(Compression * vSiDE[i]);
     int sitotale = (int) std::floor(Compression * vSiTotalE[i]);
 
+    //std::cout << "FillEndOfRun Event #" << i << std::endl;
     hPos1vsEvt -> inc(e, p);
 
     Gate &G6 = hPos1vsEvt->getGate(0);
@@ -781,12 +845,14 @@ IntVector EngeSort::getNGates(){
 // Return a vector of scalers
 IntVector EngeSort::getScalers(){
 
-  IntVector sclr;
-  for(auto sc: Scalers){
-    sclr.push_back(sc -> getValue());
-  }
+  //IntVector sclr;
+  IntVector sclr = {0};
+  //for(auto sc: Scalers){
+  //  sclr.push_back(sc -> getValue());
+  //}
 
   return sclr;
+
 }
 
 np::ndarray EngeSort::getData(){
@@ -1041,7 +1107,7 @@ void MidasAnalyzerRun::EndRun(TARunInfo* runinfo){
   std::time_t stop_time = std::chrono::system_clock::to_time_t(stop);
   std::cout << "Stop time = " << std::ctime(&stop_time) << "\n";
 
-  printf("BCI was %d\n",fModule->eA->getScalers()[10]);
+  //printf("BCI was %d\n",fModule->eA->getScalers()[10]);
 }
 
 BOOST_PYTHON_MODULE(EngeSort)
@@ -1068,7 +1134,7 @@ BOOST_PYTHON_MODULE(EngeSort)
   class_<EngeSort>("EngeSort")
     .def("sayhello", &EngeSort::sayhello)          // string
     .def("saygoodbye", &EngeSort::saygoodbye)          // string
-    .def("saysomething", &EngeSort::saysomething)      // string
+    //.def("saysomething", &EngeSort::saysomething)     // string
     .def("Initialize", &EngeSort::Initialize)          // void
     .def("connectMidasAnalyzer", &EngeSort::connectMidasAnalyzer) // int
     .def("runMidasAnalyzer", &EngeSort::runMidasAnalyzer) // int
