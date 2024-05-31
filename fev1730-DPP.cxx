@@ -1008,6 +1008,9 @@ INT init_vme_modules()
   v1730DPP_DataPrint_Updated(gVme, gV1730Base, 8, extras);
   // }
 
+  // Clears events from memory
+  cout << "Software Clear (clearing data from this test run)" << endl;
+  v1730DPP_SoftClear(gVme, gV1730Base);
   //while(v1730DPP_EventsReady(gVme, gV1730Base)){
   //for(int i=0; i<10; i++){
   //v1730DPP_DataPrint(gVme, gV1730Base);
@@ -1371,9 +1374,13 @@ uint32_t read_v1730(int base, const char* bname, char* pevent, int eventcount)
   DWORD *pdata;
   DWORD counter = 0;
 
-  //while(v1730DPP_EventsFull(gVme,gV1730Base)){
-  while(v1730DPP_EventsReady(gVme,gV1730Base)){
+  // When any channel aggregate becomes full (1023 events)
+  while(v1730DPP_EventsFull(gVme, gV1730Base)){
+  //while(v1730DPP_EventsReady(gVme, gV1730Base)){
     eventcount++;
+
+    // Flush the data for ch aggs that are not full  
+    //v1730DPP_ForceDataFlush(gVme, gV1730Base);
 
     /* create Digitizer bank */
     bk_create(pevent, bname, TID_DWORD, (void **)&pdata);

@@ -18,22 +18,22 @@
                 Settings with a ^ indicate they can only be applied to either all channels or to couples.
 
 \********************************************************************************************/
-0,1        ## Enabled Channels | 0-15
-700        ## Long gate | ns, main charge integration gate
-400        ## Short gate | ns, extra charge integration gate for pulse shape discrimination
-110        ## Gate offset | ns, offset before trigger for long/short gates, Long gate < Short gate < Gate offset
-0          ## Pre Trigger | ns (mult. of 8), offset before trigger for establishing baseline, if too low, = Gate offset + 38 ns
-0          ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
-1          ## Gain | 0-5, charge/ch, 0 = 5fC, 1 = 20fC, 2 = 80fC, 3 = 320fC, 4 = 1.28pC, 5 = 5.12pC (assuming dynamic range = 2 Vpp)
-0          ## *Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
-1          ## negSignals | 1=yes, 0=no
-32767      ## DC Offset | in DAC LSB Units
-3          ## Trigger threshold | in mV
-1          ## Discrimination Mode | 0 = LED mode, 1 = CFD mode
-40         ## CFD Delay | ns, ignored if LED mode
-75         ## CFD Fraction | %, ignored if LED mode
-1          ## *EXTRAS Recording | 0 = disabled, 1 = enabled | If enabled, CFD ZC interpolation and timetag rollback extension can be saved in a 32-bit word
-2          ## *EXTRAS Format | Ignored if EXTRAS Recording disabled | Options are 0, 1, 2 (best), 4, 5, 7 | See CFD Implemenation in 730 series User Manual
+0,1,2,3,4,5,6,7                        ## Enabled Channels | 0-15 (0=FHE,1=FLE,2=BHE,3=BLE,4=E,5=DE,6=SiE,7=SiDE)
+230,230,200,200,40,50000,2400,2400     ## Long gate | ns, main charge integration gate [230,230,200,200,40,131070,2400,2400]
+100,100,50,75,10,5000,600,600          ## Short gate | ns, extra charge integration gate for pulse shape discrimination [100,100,50,75,10,8190,600,600]
+110                                    ## Gate offset | ns, offset before trigger for long/short gates, Long gate < Short gate < Gate offset
+0                                      ## Pre Trigger | ns (mult. of 8), offset before trigger for establishing baseline, if too low, = Gate offset + 38 ns
+0                                      ## Trigger Hold-Off | ns (mult. of 8), gate after trigger for signal inhibition, if too low, stops at end of long gate
+5,5,5,5,0,0,4,4                        ## Gain | 0-5, charge/ch, 0 = 5fC, 1 = 20fC, 2 = 80fC, 3 = 320fC, 4 = 1.28pC, 5 = 5.12pC (assuming dynamic range = 2 Vpp) [4,4,4,4,0,0,4,4]
+0                                      ## *Dynamic Range | 0 = 2 Vpp (default), 1 = 0.5 Vpp, input signal voltage dynamic range
+1,1,1,1,1,0,0,0                        ## negSignals | 1=yes, 0=no [1,1,1,1,1,0,0,0]
+32767                                  ## DC Offset | in DAC LSB Units
+200,200,200,200,60,30,200,200          ## Trigger threshold | in mV [400,400,300,300,60,30,200,200]
+1                                      ## Discrimination Mode | 0 = LED mode, 1 = CFD mode
+50,50,50,50,5,510,400,400              ## CFD Delay | ns, ignored if LED mode [50,50,50,50,5,510,400,400]
+50                                     ## CFD Fraction | %, ignored if LED mode
+1                                      ## *EXTRAS Recording | 0 = disabled, 1 = enabled | If enabled, CFD ZC interpolation and timetag rollback extension can be saved in a 32-bit word
+2                                      ## *EXTRAS Format | Ignored if EXTRAS Recording disabled | Options are 0, 1, 2 (best), 4, 5, 7 | See CFD Implemenation in 730 series User Manual
 
 2          ## Input Smoothing | 0 = disabled, 1,2,3,4 = input pulse averaged over 2,4,8,16 samples, respectively
 3          ## Mean Baseline Calc | 0 = fixed baseline, 1,2,3,4 = use 16,64,256,1024 samples, respectively
