@@ -567,7 +567,7 @@ void EngeSort::sort(uint32_t *dADC, int nADC, uint32_t *dTDC, int nTDC){
     //G5.Print();
     if (G5.inGate(Ecomp,DEcomp)){
       gateCounter++;
-      hPos1_DEvsE_G2 -> inc(Pos1);
+      hPos1_gDEvsE_G2 -> inc(Pos1);
     }
     // ***********************************************************************************************
   }
